@@ -14,6 +14,7 @@ class LaporanHarian extends Model
         'foto_sore',
         'kegiatan',
         'status_validasi',
+        'progres_snapshot', // <-- Tambahan
         'latitude',      // <-- Tambahan
         'longitude',     // <-- Tambahan
         'waktu_absen',   // <-- Tambahan

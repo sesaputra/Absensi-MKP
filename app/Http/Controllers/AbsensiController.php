@@ -119,37 +119,47 @@ class AbsensiController extends Controller
 
         DB::transaction(function () use ($request, $proyek, $laporan, $pathFotoSore) {
 
-            // ==========================================
-            // LOGIKA PINTAR ANDA: Deteksi Perubahan Slider
-            // ==========================================
             $catatanProgres = "";
-            if ($request->has('progres')) {
-                foreach ($request->progres as $item_id => $nilai_progres) {
-                    $item = ItemPekerjaan::find($item_id);
-                    if ($item && $item->progres_sekarang != $nilai_progres) {
-                        $catatanProgres .= "\n🔹 " . $item->nama_pekerjaan . " : " . $item->progres_sekarang . "% ➔ " . $nilai_progres . "%";
-                        $item->update(['progres_sekarang' => $nilai_progres]);
-                    }
+            $snapshotRiwayat = [];
+
+            $semuaItemPekerjaan = ItemPekerjaan::where('proyek_id', $proyek->id)->get();
+
+            foreach ($semuaItemPekerjaan as $item) {
+                $nilai_progres_baru = $request->progres[$item->id] ?? $item->progres_sekarang;
+
+                if ($item->progres_sekarang != $nilai_progres_baru) {
+                    // Mengubah format dari emoji norak menjadi teks yang kalem & elegan
+                    $catatanProgres .= "\n- " . $item->nama_pekerjaan . " : " . $item->progres_sekarang . "% -> " . $nilai_progres_baru . "%";
+
+                    $item->update(['progres_sekarang' => $nilai_progres_baru]);
                 }
+
+                $snapshotRiwayat[] = [
+                    'nama_pekerjaan' => $item->nama_pekerjaan,
+                    'progres' => $nilai_progres_baru
+                ];
             }
 
             $kegiatanFinal = $request->kegiatan;
-            $bagianAtas = explode('📋 [PERGERAKAN PROGRES HARI INI]:', $kegiatanFinal)[0];
+
+            // Sesuaikan kata kunci pencarian pemisah teks dengan format baru yang bersih
+            $bagianAtas = explode('PENCAPAIAN PROGRES HARIAN:', $kegiatanFinal)[0];
             if ($catatanProgres != "") {
-                $kegiatanFinal = trim($bagianAtas) . "\n\n📋 [PERGERAKAN PROGRES HARI INI]:" . $catatanProgres;
+                $kegiatanFinal = trim($bagianAtas) . "\n\nPENCAPAIAN PROGRES HARIAN:" . $catatanProgres;
             }
 
             // A. UPDATE SAMPUL BUKU (Laporan Harian)
             $laporan->update([
                 'foto_sore' => $pathFotoSore,
                 'kegiatan' => $kegiatanFinal,
+                'progres_snapshot' => json_encode($snapshotRiwayat), // <--- JSON DISIMPAN DI SINI
                 'status_validasi' => 'Menunggu Persetujuan' // Kunci Laporan!
             ]);
 
-            // B. UPDATE ISI BUKU (Revisi Absen & Durasi Sore)
             foreach ($request->absensi as $pegawai_id => $data) {
                 $durasiFinal = ($data['status'] === 'Hadir') ? ($data['durasi'] ?? 'Full') : null;
 
+                // NOTE: Memanggil model Absensi, pastikan huruf depannya kapital jika di atas menggunakan \App\Models\Absensi
                 Absensi::where('laporan_harian_id', $laporan->id)
                     ->where('pegawai_id', $pegawai_id)
                     ->update([
@@ -163,7 +173,6 @@ class AbsensiController extends Controller
 
         return redirect()->route('pengawas.dashboard')->with('success', 'Laporan Final, Foto Sore & Absensi dikirim ke Admin!');
     }
-
     // =======================================================================
     // FUNGSI ADMIN DI BAWAH INI
     // =======================================================================

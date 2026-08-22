@@ -12,17 +12,14 @@ return new class extends Migration
             $table->id();
             $table->foreignId('proyek_id')->constrained('proyeks')->cascadeOnDelete();
             $table->foreignId('pegawai_id')->constrained('pegawais')->cascadeOnDelete();
-
             $table->date('tanggal');
-
             $table->string('foto_pagi')->nullable();
             $table->string('foto_sore')->nullable();
             $table->text('kegiatan')->nullable();
+            // KOLOM BARU: REKAM JEJAK PROGRES FISIK (JSON)
+            $table->json('progres_snapshot')->nullable();
             $table->enum('status_validasi', ['Draft Pagi', 'Menunggu Persetujuan', 'Disetujui', 'Ditolak'])->default('Draft Pagi');
-
-            // ==========================================
-            // KOLOM BARU: LOKASI & WAKTU REAL-TIME
-            // ==========================================
+            // KOLOM LOKASI & WAKTU REAL-TIME
             $table->string('latitude')->nullable();    // Koordinat Garis Lintang
             $table->string('longitude')->nullable();   // Koordinat Garis Bujur
             $table->timestamp('waktu_absen')->nullable(); // Waktu pasti saat Mandor menekan "Kirim"
