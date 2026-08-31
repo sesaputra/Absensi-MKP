@@ -1,0 +1,32 @@
+# Production override - use: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Remove dev bind-mounts - use built image artifacts only
+    volumes:
+      - storage_data:/var/www/storage
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+    restart: always
+
+  webserver:
+    volumes:
+      # In prod only mount built public assets (read-only) - no source bind-mount
+      - ./public:/var/www/public:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      # Share storage for user uploads if you use public/storage
+      - storage_data:/var/www/storage:ro
+    restart: always
+
+  db:
+    # Do not expose MySQL to host in prod
+    ports: []
+    restart: always
+    # Consider adding: deploy.resources.limits
+
+volumes:
+  storage_data:
+    driver: local
