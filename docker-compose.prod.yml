@@ -1,9 +1,11 @@
 # Production override - use: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# For GHCR deploys: TAG=sha-production docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && up -d
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    image: ghcr.io/sesaputra/absensi-mkp:${TAG:-latest}
     # Remove dev bind-mounts - use built image artifacts only
     volumes:
       - storage_data:/var/www/storage
