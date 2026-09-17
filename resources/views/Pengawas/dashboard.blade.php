@@ -3,7 +3,7 @@
 @section('title', 'Dashboard Pengawas')
 
 @section('content')
-<div class="max-w-md mx-auto bg-[#f8fafc] min-h-screen pb-24 shadow-2xl border-x border-slate-200">
+<div class="max-w-md md:max-w-3xl lg:max-w-4xl mx-auto bg-[#f8fafc] min-h-screen pb-24 shadow-2xl border-x border-slate-200">
 
     <!-- HEADER & PROFILE SECTION (Tema #0c2340) -->
     <div class="bg-[#0c2340] rounded-b-[2.5rem] shadow-lg relative overflow-hidden pb-6 pt-8 px-6">

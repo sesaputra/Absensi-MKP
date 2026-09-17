@@ -49,5 +49,18 @@ class User extends Authenticatable
     {
         return $this->hasOne(Pegawai::class);
     }
-    
+    public function isSuperAdmin()
+    {
+        return $this->role === 'super_admin';
+    }
+
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isPengawas()
+    {
+        return $this->role === 'pengawas';
+    }
 }

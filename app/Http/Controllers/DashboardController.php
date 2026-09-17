@@ -41,8 +41,12 @@ class DashboardController extends Controller
 
             $batasAmanNominal = 5000000; // Peringatan nyala jika kas di bawah Rp 5 Juta
 
-            // Menentukan Warna dan Status (Sama seperti halaman detail)
-            if ($kasTersedia < 0) {
+            if ($totalPemasukan == 0 && $totalPengeluaran == 0) {
+                $proyek->health_status = 'Belum Ada Dana';
+                $proyek->health_color = 'bg-slate-100 text-slate-700';
+                $proyek->health_dot = 'bg-slate-500';
+                $persentaseTerpakai = 0;
+            } elseif ($kasTersedia < 0) {
                 $proyek->health_status = 'Nombok!';
                 $proyek->health_color = 'bg-red-100 text-red-700';
                 $proyek->health_dot = 'bg-red-600';

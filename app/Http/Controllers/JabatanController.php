@@ -10,7 +10,7 @@ class JabatanController extends Controller
 {
     public function store(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') abort(403);
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) abort(403);
 
         $request->validate([
             'nama_jabatan' => 'required|string|max:255',
@@ -25,7 +25,7 @@ class JabatanController extends Controller
     public function update(Request $request, Jabatan $jabatan)
     {
         // Pastikan hanya admin
-        if (!Auth::check() || Auth::user()->role !== 'admin') abort(403);
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) abort(403);
 
         // Validasi data
         $request->validate([
@@ -44,7 +44,7 @@ class JabatanController extends Controller
 
     public function destroy(Jabatan $jabatan)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') abort(403);
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) abort(403);
 
         $jabatan->delete();
         return back()->with('success', 'Kategori jabatan berhasil dihapus!');

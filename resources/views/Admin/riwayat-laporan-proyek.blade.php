@@ -131,7 +131,9 @@
                     <!-- 1. TEKS CATATAN -->
                     <div class="flex gap-4 mb-6 border-b border-slate-100 pb-6">
                         <div class="hidden sm:flex mt-1 w-8 h-8 rounded-full bg-slate-50 items-center justify-center border border-slate-200 shrink-0">
-                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
                         </div>
                         <div class="flex-1">
                             <h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Jurnal Lapangan:</h4>
@@ -147,25 +149,31 @@
                     <!-- 2. PROGRES FISIK (BARU DITAMBAHKAN) -->
                     <div class="flex gap-4 mb-6">
                         <div class="hidden sm:flex mt-1 w-8 h-8 rounded-full bg-slate-50 items-center justify-center border border-slate-200 shrink-0">
-                            <svg class="w-4 h-4 text-[#0c2340]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            <svg class="w-4 h-4 text-[#0c2340]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
                         </div>
                         <div class="flex-1">
                             <h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Pencapaian Fisik Proyek:</h4>
-                            
+
                             <!-- Grid Item Pekerjaan -->
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                @forelse($proyek->itemPekerjaans as $item)
+                                @php
+                                $snapshot = $laporan->progres_snapshot ? json_decode($laporan->progres_snapshot, true) : [];
+                                @endphp
+
+                                @forelse($snapshot as $item)
                                 <div class="bg-slate-50 border border-slate-100 p-3 rounded-xl">
                                     <div class="flex justify-between items-end mb-2">
-                                        <span class="text-[13px] font-bold text-slate-700 truncate pr-2">{{ $item->nama_pekerjaan }}</span>
-                                        <span class="text-xs font-black {{ $item->progres_sekarang > 0 ? 'text-[#0c2340]' : 'text-slate-400' }}">{{ $item->progres_sekarang }}%</span>
+                                        <span class="text-[13px] font-bold text-slate-700 truncate pr-2">{{ $item['nama_pekerjaan'] }}</span>
+                                        <span class="text-xs font-black {{ $item['progres'] > 0 ? 'text-[#0c2340]' : 'text-slate-400' }}">{{ $item['progres'] }}%</span>
                                     </div>
                                     <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                                        <div class="{{ $item->progres_sekarang > 0 ? 'bg-[#0c2340]' : 'bg-slate-300' }} h-1.5 rounded-full" style="width: {{ $item->progres_sekarang }}%"></div>
+                                        <div class="{{ $item['progres'] > 0 ? 'bg-[#0c2340]' : 'bg-slate-300' }} h-1.5 rounded-full" style="width: {{ $item['progres'] }}%"></div>
                                     </div>
                                 </div>
                                 @empty
-                                <p class="text-xs text-slate-400 italic pl-1">Admin belum mendaftarkan item pekerjaan.</p>
+                                <p class="text-xs text-slate-400 italic pl-1">Tidak ada catatan progres pada laporan hari ini.</p>
                                 @endforelse
                             </div>
                         </div>
@@ -180,7 +188,10 @@
                             <!-- Tombol GPS Kecil -->
                             @if($laporan->latitude && $laporan->longitude)
                             <a href="https://www.google.com/maps/search/?api=1&query={{ $laporan->latitude }},{{ $laporan->longitude }}" target="_blank" class="inline-flex items-center px-2.5 py-1 text-[10px] font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-md transition-colors">
-                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
                                 Buka Titik GPS
                             </a>
                             @endif

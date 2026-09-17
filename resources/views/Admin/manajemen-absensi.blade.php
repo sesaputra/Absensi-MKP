@@ -4,12 +4,19 @@
 
 @section('content')
 
-<!-- BANNER HALAMAN -->
-<div class="relative bg-white rounded-xl shadow-sm border border-slate-100 p-6 lg:p-8 overflow-hidden mb-6">
-    <div class="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20" style="background-image: url('{{ asset('images/flower-mkp.jpg') }}');"></div>
-    <div class="relative z-10">
-        <h1 class="text-2xl font-bold text-slate-800">Manajemen Absensi & Laporan Lapangan</h1>
-        <p class="mt-2 text-slate-600 max-w-2xl">
+<!-- ================= BANNER HALAMAN ================= -->
+<div class="relative bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 lg:p-8 overflow-hidden mb-6">
+    <div class="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-100 pointer-events-none" 
+         style="background-image: url('{{ asset('images/flower-mkp.jpg') }}');"></div>
+    <div class="absolute inset-0 bg-gradient-to-r from-white/95 via-white/80 to-white/40 pointer-events-none"></div>
+    
+    <div class="relative z-10 max-w-2xl">
+        <div class="inline-flex items-center space-x-2 bg-slate-100/90 border border-slate-200 px-3 py-1 rounded-full text-xs font-semibold text-slate-600 mb-3 backdrop-blur-sm">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+            <span>Modul Validasi Operasional</span>
+        </div>
+        <h1 class="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Manajemen Absensi & Laporan Lapangan</h1>
+        <p class="mt-2 text-slate-600 text-sm leading-relaxed">
             Tinjau foto progres, lokasi GPS Mandor, dan rekapitulasi data kehadiran harian pekerja sebelum melakukan validasi (persetujuan).
         </p>
     </div>
@@ -18,66 +25,74 @@
 <!-- ===================================================================================== -->
 <!-- BAGIAN 1: DRAFT LAPORAN (Menunggu Persetujuan) -->
 <!-- ===================================================================================== -->
-<div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 lg:p-8 mb-6">
-    <div class="mb-6">
-        <h2 class="text-lg font-bold text-slate-800 border-b-2 border-amber-500 inline-block pb-1">Draft Laporan Menunggu Validasi</h2>
-        <p class="text-sm text-slate-500 mt-2">Periksa foto lapangan dan daftar kehadiran sebelum menyetujui. Data yang disetujui akan masuk ke rekap gaji.</p>
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 lg:p-8 mb-6">
+    <div class="mb-6 pb-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-2">
+        <div>
+            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <span>Draft Laporan Menunggu Validasi</span>
+                @if(count($draftLaporan) > 0)
+                    <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full">{{ count($draftLaporan) }}</span>
+                @endif
+            </h2>
+            <p class="text-xs text-slate-500 mt-1">Periksa foto lapangan dan daftar kehadiran sebelum menyetujui. Data yang disetujui akan masuk ke rekap gaji.</p>
+        </div>
     </div>
 
     <div class="space-y-4">
-        <!-- PERBAIKAN 1: Variabel diubah menjadi $draftLaporan -->
         @forelse($draftLaporan as $laporan)
         @php
-        $proyek = $laporan->proyek;
-        $totalHadir = $laporan->absensis->where('status', 'Hadir')->count();
-        $totalTidakHadir = $laporan->absensis->whereIn('status', ['Sakit', 'Izin', 'Alfa'])->count();
+            $proyek = $laporan->proyek;
+            $totalHadir = $laporan->absensis->where('status', 'Hadir')->count();
+            $totalTidakHadir = $laporan->absensis->whereIn('status', ['Sakit', 'Izin', 'Alfa'])->count();
         @endphp
 
         <!-- KARTU BUKA-TUTUP (ACCORDION) -->
-        <details class="group bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden [&_summary::-webkit-details-marker]:hidden">
+        <details class="group bg-white border border-slate-200/90 rounded-xl shadow-xs overflow-hidden transition-all duration-200 [&_summary::-webkit-details-marker]:hidden">
 
-            <!-- SUMMARY (Bagian yang selalu terlihat) -->
-            <summary class="flex flex-col md:flex-row md:items-center justify-between p-4 cursor-pointer hover:bg-slate-50 transition-colors">
+            <!-- SUMMARY Header -->
+            <summary class="flex flex-col md:flex-row md:items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-colors select-none">
 
                 <div class="flex items-center space-x-4 mb-3 md:mb-0">
-                    <span class="transition duration-300 group-open:-rotate-180 text-slate-400 bg-white border border-slate-200 rounded-full p-1 shrink-0">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span class="transition duration-300 group-open:-rotate-180 text-slate-400 bg-slate-100 border border-slate-200 rounded-full p-1 shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
                     </span>
                     <div>
-                        <h3 class="font-bold text-slate-800 text-base">{{ $proyek->nama_proyek }}</h3>
-                        <p class="text-xs font-medium text-slate-500">
+                        <h3 class="font-bold text-slate-800 text-base">{{ $proyek->nama_proyek ?? 'Proyek Tanpa Nama' }}</h3>
+                        <p class="text-xs font-medium text-slate-500 mt-0.5">
                             {{ \Carbon\Carbon::parse($laporan->tanggal)->translatedFormat('l, d F Y') }} •
-                            <span class="text-blue-600 font-semibold">Mandor: {{ $laporan->pembuatLaporan->nama }}</span>
+                            <span class="text-slate-700 font-semibold">Mandor: {{ $laporan->pembuatLaporan->nama ?? '-' }}</span>
                         </p>
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between md:justify-end w-full md:w-auto space-x-4 ml-10 md:ml-0">
-                    <div class="flex space-x-2 mr-2">
-                        <span class="text-xs font-bold text-green-700 bg-green-100 px-2.5 py-1 rounded-md">{{ $totalHadir }} Hadir</span>
+                <div class="flex items-center justify-between md:justify-end w-full md:w-auto space-x-4">
+                    <div class="flex space-x-2">
+                        <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 rounded-lg">{{ $totalHadir }} Hadir</span>
                         @if($totalTidakHadir > 0)
-                        <span class="text-xs font-bold text-red-700 bg-red-100 px-2.5 py-1 rounded-md">{{ $totalTidakHadir }} Absen</span>
+                            <span class="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200/60 px-2.5 py-1 rounded-lg">{{ $totalTidakHadir }} Absen</span>
                         @endif
                     </div>
 
-                    <!-- Tombol Setujui/Tolak -->
-                    <div class="flex space-x-2">
+                    <!-- Tombol Setujui/Tolak (Dengan event.stopPropagation() agar tidak mentrigger accordion) -->
+                    <div class="flex space-x-2" onclick="event.stopPropagation();">
                         <form action="{{ route('admin.absensi.setujui', ['proyek_id' => $proyek->id, 'tanggal' => $laporan->tanggal]) }}" method="POST">
                             @csrf
-                            <button type="submit" class="flex items-center space-x-1 px-3 py-1.5 text-xs font-bold text-green-700 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200" onclick="return confirm('Setujui Laporan & Absensi ini?')">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            <button type="submit" onclick="event.stopPropagation(); return confirm('Setujui Laporan & Absensi ini?')" 
+                                class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors shadow-2xs">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
                                 </svg>
                                 <span>Setujui</span>
                             </button>
                         </form>
                         <form action="{{ route('admin.absensi.tolak', ['proyek_id' => $proyek->id, 'tanggal' => $laporan->tanggal]) }}" method="POST">
                             @csrf
-                            <button type="submit" class="flex items-center space-x-1 px-3 py-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200" onclick="return confirm('Tolak Laporan ini? Mandor harus mengulangnya.')">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            <button type="submit" onclick="event.stopPropagation(); return confirm('Tolak Laporan ini? Mandor harus mengulangnya.')" 
+                                class="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-colors shadow-2xs">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
                                 <span>Tolak</span>
                             </button>
@@ -86,81 +101,81 @@
                 </div>
             </summary>
 
-            <!-- KONTEN DETAIL (Muncul saat diklik) -->
-            <div class="border-t border-slate-200 p-5 bg-slate-50">
-
-                <!-- GRID 2 KOLOM: Kiri (Bukti Lapangan) & Kanan (Daftar Hadir) -->
+            <!-- KONTEN DETAIL -->
+            <div class="border-t border-slate-200/80 p-5 bg-slate-50/50">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                    <!-- Kiri: Foto & Laporan Kegiatan (Ambil 1 Kolom) -->
+                    <!-- Kiri: Foto & Laporan Kegiatan -->
                     <div class="lg:col-span-1 space-y-4">
-                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Foto Lapangan</h4>
-
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                            <h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Foto Lapangan</h4>
                             <div class="space-y-3">
                                 <div>
-                                    <p class="text-[10px] font-bold text-slate-400 mb-1">FOTO PAGI / BRIEFING</p>
+                                    <p class="text-[10px] font-bold text-slate-500 mb-1">FOTO PAGI / BRIEFING</p>
                                     @if($laporan->foto_pagi)
-                                    <img src="{{ asset('storage/' . $laporan->foto_pagi) }}" class="w-full h-32 object-cover rounded-lg border border-slate-100" alt="Foto Pagi">
+                                        <a href="{{ asset('storage/' . $laporan->foto_pagi) }}" target="_blank">
+                                            <img src="{{ asset('storage/' . $laporan->foto_pagi) }}" class="w-full h-32 object-cover rounded-lg border border-slate-200 hover:opacity-90 transition-opacity" alt="Foto Pagi">
+                                        </a>
                                     @else
-                                    <div class="w-full h-32 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-slate-400">Tidak ada foto pagi</div>
+                                        <div class="w-full h-28 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-slate-400 border border-slate-200/60">Tidak ada foto pagi</div>
                                     @endif
                                 </div>
 
                                 <div>
-                                    <p class="text-[10px] font-bold text-slate-400 mb-1">FOTO SORE / PROGRES</p>
+                                    <p class="text-[10px] font-bold text-slate-500 mb-1">FOTO SORE / PROGRES</p>
                                     @if($laporan->foto_sore)
-                                    <img src="{{ asset('storage/' . $laporan->foto_sore) }}" class="w-full h-32 object-cover rounded-lg border border-slate-100" alt="Foto Sore">
+                                        <a href="{{ asset('storage/' . $laporan->foto_sore) }}" target="_blank">
+                                            <img src="{{ asset('storage/' . $laporan->foto_sore) }}" class="w-full h-32 object-cover rounded-lg border border-slate-200 hover:opacity-90 transition-opacity" alt="Foto Sore">
+                                        </a>
                                     @else
-                                    <div class="w-full h-32 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-slate-400">Belum ada foto sore</div>
+                                        <div class="w-full h-28 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-slate-400 border border-slate-200/60">Belum ada foto sore</div>
                                     @endif
                                 </div>
                             </div>
 
-                            <!-- Tombol Cek GPS -->
                             @if($laporan->latitude && $laporan->longitude)
-                            <a href="https://www.google.com/maps/search/?api=1&query={{ $laporan->latitude }},{{ $laporan->longitude }}" target="_blank" class="mt-4 flex items-center justify-center space-x-2 w-full bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold py-2 rounded-lg border border-blue-200 transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <a href="https://www.google.com/maps/search/?api=1&query={{ $laporan->latitude }},{{ $laporan->longitude }}" target="_blank" 
+                               class="mt-4 flex items-center justify-center space-x-2 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2 rounded-lg border border-slate-300/70 transition-colors">
+                                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 </svg>
-                                <span>Cek Titik Lokasi Mandor</span>
+                                <span>Cek Titik GPS Mandor</span>
                             </a>
                             @endif
                         </div>
 
                         <!-- Catatan Laporan Harian -->
-                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Jurnal Harian</h4>
-                            <div class="text-sm text-slate-700 whitespace-pre-line bg-slate-50 p-3 rounded-lg border border-slate-100">
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                            <h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Jurnal Harian</h4>
+                            <div class="text-xs text-slate-700 leading-relaxed whitespace-pre-line bg-slate-50 p-3 rounded-lg border border-slate-200/60">
                                 {{ $laporan->kegiatan ?? 'Mandor belum menulis jurnal kegiatan harian.' }}
                             </div>
                         </div>
                     </div>
 
-                    <!-- Kanan: Daftar Tukang (Ambil 2 Kolom) -->
+                    <!-- Kanan: Daftar Tukang -->
                     <div class="lg:col-span-2">
-                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Daftar Kehadiran Pegawai</h4>
+                        <h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Daftar Kehadiran Pegawai</h4>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <!-- Loop Data Absensi yang nempel di Laporan ini -->
                             @foreach($laporan->absensis as $absen)
-                            <div class="bg-white p-3 rounded-xl border border-slate-200 flex justify-between items-center shadow-sm">
+                            <div class="bg-white p-3 rounded-xl border border-slate-200/80 flex justify-between items-center shadow-2xs">
                                 <div>
-                                    <p class="text-sm font-bold text-slate-800">{{ $absen->pegawai->nama }}</p>
-                                    <p class="text-[10px] text-slate-500 font-medium">Durasi: {{ $absen->durasi ?? '-' }}</p>
+                                    <p class="text-xs font-bold text-slate-800">{{ $absen->pegawai->nama ?? 'Pegawai' }}</p>
+                                    <p class="text-[11px] text-slate-500 font-medium">Durasi: {{ $absen->durasi ?? '-' }}</p>
                                     @if($absen->keterangan)
-                                    <p class="text-[10px] text-amber-600 italic mt-0.5">Catatan: {{ $absen->keterangan }}</p>
+                                        <p class="text-[10px] text-amber-700 italic mt-0.5">Note: {{ $absen->keterangan }}</p>
                                     @endif
                                 </div>
-                                <div class="text-right">
+                                <div>
                                     @if($absen->status == 'Hadir')
-                                    <span class="text-green-600 font-black text-xs">HADIR</span>
+                                        <span class="inline-block px-2 py-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md">HADIR</span>
                                     @elseif($absen->status == 'Sakit')
-                                    <span class="text-amber-500 font-black text-xs">SAKIT</span>
+                                        <span class="inline-block px-2 py-0.5 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-md">SAKIT</span>
                                     @elseif($absen->status == 'Izin')
-                                    <span class="text-blue-600 font-black text-xs">IZIN</span>
+                                        <span class="inline-block px-2 py-0.5 text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 rounded-md">IZIN</span>
                                     @else
-                                    <span class="text-red-600 font-black text-xs">ALFA</span>
+                                        <span class="inline-block px-2 py-0.5 text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-md">ALFA</span>
                                     @endif
                                 </div>
                             </div>
@@ -168,15 +183,16 @@
                         </div>
                     </div>
 
-                </div> <!-- End Grid -->
+                </div>
             </div>
         </details>
         @empty
-        <div class="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-            <svg class="w-10 h-10 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        <div class="text-center py-10 bg-slate-50/60 rounded-xl border border-dashed border-slate-300">
+            <svg class="w-10 h-10 text-slate-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <p class="text-slate-500 text-sm font-medium">Bagus! Semua draft absensi dan laporan sudah divalidasi.</p>
+            <p class="text-slate-600 text-sm font-semibold">Semua Draft Terproses!</p>
+            <p class="text-slate-400 text-xs mt-1">Tidak ada draft absensi atau laporan yang menunggu validasi saat ini.</p>
         </div>
         @endforelse
     </div>
@@ -185,52 +201,57 @@
 <!-- ===================================================================================== -->
 <!-- BAGIAN 2: TABEL ABSENSI PEGAWAI (Data Valid) -->
 <!-- ===================================================================================== -->
-<div class="bg-white rounded-xl shadow-sm border border-slate-100 p-6 lg:p-8">
+<div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 lg:p-8">
 
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 gap-4">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 pb-4 border-b border-slate-100">
         <div>
-            <h2 class="text-lg font-bold text-slate-800 border-b-2 border-amber-500 inline-block pb-1">Tabel Laporan Proyek (Disetujui)</h2>
-            <p class="text-sm text-slate-500 mt-2">Data absensi dan progres lapangan yang sudah sah dan siap dihitung dalam penggajian.</p>
+            <h2 class="text-lg font-bold text-slate-800">Laporan Proyek Disetujui</h2>
+            <p class="text-xs text-slate-500 mt-1">Data absensi dan progres harian yang sudah sah dan siap diproses ke penggajian.</p>
         </div>
 
-        <form action="{{ route('admin.absensi.index') }}" method="GET" class="flex items-center space-x-3">
-            <label for="filter_tanggal" class="text-sm font-medium text-slate-600">Pilih Tanggal:</label>
+        <form action="{{ route('admin.absensi.index') }}" method="GET" class="flex items-center space-x-3 bg-slate-50 p-1.5 rounded-xl border border-slate-200/80">
+            <label for="filter_tanggal" class="text-xs font-semibold text-slate-600 pl-2">Tanggal:</label>
             <input type="date" id="filter_tanggal" name="filter_tanggal" value="{{ $tanggalFilter }}" onchange="this.form.submit()"
-                class="rounded-lg border-slate-300 py-2 px-3 text-sm text-slate-700 shadow-sm focus:ring-amber-500 focus:border-amber-500 outline-none ring-1 ring-inset ring-slate-300">
+                class="rounded-lg border-slate-200 py-1.5 px-3 text-xs text-slate-700 font-semibold shadow-2xs focus:ring-2 focus:ring-slate-400 outline-none">
         </form>
     </div>
 
     <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-[800px]">
+        <table class="w-full text-left border-collapse min-w-[700px]">
             <thead>
-                <tr class="border-b border-slate-200">
-                    <th class="py-3 px-4 text-sm font-semibold text-slate-600 bg-slate-50 rounded-tl-lg">Nama Proyek</th>
-                    <th class="py-3 px-4 text-sm font-semibold text-slate-600 bg-slate-50">Pengawas</th>
-                    <th class="py-3 px-4 text-sm font-semibold text-slate-600 bg-slate-50 text-center">Tukang Hadir</th>
-                    <th class="py-3 px-4 text-sm font-semibold text-slate-600 bg-slate-50 text-center">Sakit/Izin/Alfa</th>
-                    <th class="py-3 px-4 text-sm font-semibold text-slate-600 bg-slate-50 text-right rounded-tr-lg">Detail Bulanan</th>
+                <tr class="border-b border-slate-200 text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-50/80">
+                    <th class="py-3 px-4 rounded-l-lg">Nama Proyek</th>
+                    <th class="py-3 px-4">Pengawas</th>
+                    <th class="py-3 px-4 text-center">Tukang Hadir</th>
+                    <th class="py-3 px-4 text-center">Tidak Hadir</th>
+                    <th class="py-3 px-4 text-right rounded-r-lg">Aksi</th>
                 </tr>
             </thead>
-            <tbody class="text-sm text-slate-700">
-
-                <!-- PERBAIKAN 2: Variabel diubah menjadi $laporanValid -->
+            <tbody class="text-xs text-slate-700 divide-y divide-slate-100">
                 @forelse($laporanValid as $laporan)
                 @php
-                $proyek = $laporan->proyek;
-                $totalHadir = $laporan->absensis->where('status', 'Hadir')->count();
-                $totalTidakHadir = $laporan->absensis->whereIn('status', ['Sakit', 'Izin', 'Alfa'])->count();
+                    $proyek = $laporan->proyek;
+                    $totalHadir = $laporan->absensis->where('status', 'Hadir')->count();
+                    $totalTidakHadir = $laporan->absensis->whereIn('status', ['Sakit', 'Izin', 'Alfa'])->count();
                 @endphp
-
-                <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td class="py-4 px-4 font-bold text-slate-800">{{ $proyek->nama_proyek }}</td>
-                    <td class="py-4 px-4 text-slate-600">{{ $laporan->pembuatLaporan->nama }}</td>
-                    <td class="py-4 px-4 text-center font-bold text-green-600">{{ $totalHadir }} Orang</td>
-                    <td class="py-4 px-4 text-center font-bold text-amber-600">{{ $totalTidakHadir }} Orang</td>
-                    <td class="py-4 px-4 text-right">
-                        <!-- Tombol Lihat Detail -->
-                        <a href="{{ route('admin.absensi.detail', $proyek->id) }}" class="inline-flex items-center space-x-2 px-3 py-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200" title="Lihat Riwayat 1 Bulan">
-                            <span class="text-xs font-bold">Buka Riwayat</span>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="py-3.5 px-4 font-bold text-slate-800">{{ $proyek->nama_proyek ?? '-' }}</td>
+                    <td class="py-3.5 px-4 text-slate-600 font-medium">{{ $laporan->pembuatLaporan->nama ?? '-' }}</td>
+                    <td class="py-3.5 px-4 text-center">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                            {{ $totalHadir }} Orang
+                        </span>
+                    </td>
+                    <td class="py-3.5 px-4 text-center">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                            {{ $totalTidakHadir }} Orang
+                        </span>
+                    </td>
+                    <td class="py-3.5 px-4 text-right">
+                        <a href="{{ route('admin.absensi.detail', $proyek->id) }}" 
+                           class="inline-flex items-center space-x-1.5 px-3 py-1.5 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-300/70 font-semibold text-xs">
+                            <span>Buka Riwayat</span>
+                            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
                             </svg>
                         </a>
@@ -238,25 +259,25 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" class="py-8 text-center text-slate-500">
-                        Tidak ada laporan proyek yang valid untuk tanggal {{ \Carbon\Carbon::parse($tanggalFilter)->translatedFormat('d F Y') }}.
+                    <td colspan="5" class="py-10 text-center text-slate-400">
+                        Tidak ada laporan proyek yang disetujui pada tanggal 
+                        <strong class="text-slate-600">{{ \Carbon\Carbon::parse($tanggalFilter)->translatedFormat('d F Y') }}</strong>.
                     </td>
                 </tr>
                 @endforelse
-
             </tbody>
         </table>
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     @if(session('success'))
     Swal.fire({
         icon: 'success',
         title: 'Berhasil!',
         text: "{{ session('success') }}",
-        confirmButtonColor: '#0c2340', // Warna navy brand Anda
+        confirmButtonColor: '#0f172a',
         timer: 3000
     });
     @endif
@@ -266,7 +287,7 @@
         icon: 'error',
         title: 'Oops...',
         text: "{{ session('error') }}",
-        confirmButtonColor: '#d33'
+        confirmButtonColor: '#e11d48'
     });
     @endif
 </script>

@@ -13,7 +13,7 @@ class ItemPekerjaanController extends Controller
     public function store(Request $request, Proyek $proyek)
     {
         // Pastikan hanya admin yang bisa menambah
-        if (!Auth::check() || Auth::user()->role !== 'admin') abort(403);
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) abort(403);
 
         // Validasi berbentuk Array karena inputan bisa lebih dari 1 baris
         $request->validate([
@@ -49,7 +49,7 @@ class ItemPekerjaanController extends Controller
     // 2. Mengubah Item Pekerjaan (Edit Bobot / Nama)
     public function update(Request $request, ItemPekerjaan $itemPekerjaan)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') abort(403);
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) abort(403);
 
         $request->validate([
             'nama_pekerjaan' => 'required|string|max:255',
@@ -79,7 +79,7 @@ class ItemPekerjaanController extends Controller
     // 3. Menghapus Item Pekerjaan
     public function destroy(ItemPekerjaan $itemPekerjaan)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') abort(403);
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) abort(403);
 
         $itemPekerjaan->delete();
 
