@@ -23,6 +23,13 @@ class DatabaseSeeder extends Seeder
             'gaji_harian' => 120000, // Gaji harian simulasi
         ]);
 
+        User::create([
+            'name' => 'Super Admin',
+            'email' => 'superadmin@mkp.com',
+            'password' => Hash::make('password123'),
+            'role' => 'super_admin',
+        ]);
+
         // 1. Membuat Akun Admin (Hanya untuk login)
         User::create([
             'name' => 'Administrator MKP',

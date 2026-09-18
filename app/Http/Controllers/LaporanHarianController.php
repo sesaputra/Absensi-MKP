@@ -26,8 +26,7 @@ class LaporanHarianController extends Controller
 
         return view('Pengawas.laporan-harian', compact('proyek', 'laporanHariIni', 'tanggalHariIni'));
     }
-
-    // 2. Menyimpan Laporan Teks dan Mengubah Progres Slider
+    
     // 2. Menyimpan Laporan Teks dan Mengubah Progres Slider (Smart Change-Log)
     public function store(Request $request, Proyek $proyek)
     {

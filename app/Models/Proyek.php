@@ -15,22 +15,22 @@ class Proyek extends Model
         'tanggal_mulai',
         'estimasi_selesai',
         'anggaran',
-        'gambar', 
+        'gambar',
         'status',
     ];
     // Menambahkan Accessor untuk mendapatkan status yang "hidup"
-    public function getStatusAttribute($value)
-    {
-        $hariIni = Carbon::now();
-        $mulai = Carbon::parse($this->tanggal_mulai);
+    // public function getStatusAttribute($value)
+    // {
+    //     $hariIni = Carbon::now();
+    //     $mulai = Carbon::parse($this->tanggal_mulai);
 
-        // Jika status di DB adalah 'Akan Dimulai' tapi tanggalnya sudah hari ini atau lewat
-        if ($value == 'Akan Dimulai' && $hariIni->greaterThanOrEqualTo($mulai)) {
-            return 'Berjalan'; // Sistem menganggapnya sedang berjalan
-        }
+    //     // Jika status di DB adalah 'Akan Dimulai' tapi tanggalnya sudah hari ini atau lewat
+    //     if ($value == 'Akan Dimulai' && $hariIni->greaterThanOrEqualTo($mulai)) {
+    //         return 'Berjalan'; // Sistem menganggapnya sedang berjalan
+    //     }
 
-        return $value;
-    }
+    //     return $value;
+    // }
 
     public function pegawais()
     {

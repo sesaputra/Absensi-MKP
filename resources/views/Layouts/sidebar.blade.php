@@ -34,13 +34,26 @@
             <span class="font-medium">Manajemen Absensi</span>
         </a>
 
-        <!-- Menu Proyek (Aktif juga jika membuka Detail Proyek) -->
-        <a href="{{ url('/manajemen-proyek') }}"
-            class="flex items-center px-4 py-3 rounded-lg transition-colors {{ request()->is('manajemen-proyek') ? 'bg-[#1a365d] text-white' : 'text-slate-300 hover:bg-[#152e52] hover:text-white' }}">
-            <svg class="w-5 h-5 mr-3 {{ request()->is('manajemen-proyek') ? 'text-amber-500' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- Menu Proyek (Aktif juga jika membuka Detail, Keuangan, Payroll, dll) -->
+        <a href="{{ route('proyek.index') }}"
+            class="flex items-center px-4 py-3 rounded-lg transition-colors {{ request()->is('manajemen-proyek*', 'proyek/*', 'admin/proyek/*') ? 'bg-[#1a365d] text-white' : 'text-slate-300 hover:bg-[#152e52] hover:text-white' }}">
+            <svg class="w-5 h-5 mr-3 {{ request()->is('manajemen-proyek*', 'proyek/*', 'admin/proyek/*') ? 'text-amber-500' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
             </svg>
             <span class="font-medium">Manajemen Proyek</span>
         </a>
     </nav>
+
+    <!-- Copyright Sidebar -->
+    <div class="border-t border-slate-700/50 px-4 py-4">
+        <p class="text-center text-[11px] leading-5 text-slate-400">
+            &copy; {{ now()->year }} SAKP
+        </p>
+        <p class="mt-0.5 text-center text-[10px] leading-4 text-slate-500">
+            Sistem Administrasi Kegiatan Proyek
+        </p>
+        <p class="mt-0.5 text-center text-[10px] leading-4 text-amber-400">
+            @zsaymade
+        </p>
+    </div>
 </aside>

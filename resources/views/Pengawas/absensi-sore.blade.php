@@ -55,7 +55,7 @@
     }
 </style>
 
-<div class="max-w-md mx-auto bg-[#f8fafc] min-h-screen pb-24 shadow-2xl border-x border-slate-200">
+<div class="max-w-md md:max-w-3xl lg:max-w-4xl mx-auto bg-[#f8fafc] min-h-screen pb-24 shadow-2xl border-x border-slate-200">
 
     <!-- HEADER SORE (Warna Background #0c2340) -->
     <div class="bg-[#0c2340] text-white p-6 rounded-b-3xl shadow-lg relative overflow-hidden">

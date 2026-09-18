@@ -3,7 +3,7 @@
 @section('title', 'Laporan Progres Proyek')
 
 @section('content')
-<div class="max-w-md mx-auto bg-slate-50 min-h-screen pb-24 shadow-xl border-x border-slate-100">
+<div class="max-w-md md:max-w-3xl lg:max-w-4xl mx-auto bg-[#f8fafc] min-h-screen pb-24 shadow-2xl border-x border-slate-200">
 
     <!-- HEADER SORE / LAPORAN -->
     <div class="bg-slate-800 text-white p-6 rounded-b-3xl shadow-md relative overflow-hidden">

@@ -7,6 +7,7 @@ use App\Models\Kasbon;
 use App\Models\Proyek;
 use App\Models\KeuanganProyek;
 use App\Models\Pegawai;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -144,6 +145,7 @@ class KeuanganProyekController extends Controller
             ->whereBetween('tanggal', [$request->start_date, $request->end_date])
             ->where('status', 'Hadir')
             ->where('status_validasi', 'Disetujui')
+            ->where('status_pembayaran', 'Belum Dibayar')
             ->get();
 
         $hariFull = $kehadiran->where('durasi', 'Full')->count();
@@ -170,7 +172,8 @@ class KeuanganProyekController extends Controller
                 'hari_setengah' => $hariSetengah,
                 'total_upah_kotor' => $totalUpahKotor,
                 'total_potongan_kasbon' => $totalPotonganKasbon,
-                'estimasi_gaji_bersih' => $estimasiGajiBersih
+                'estimasi_gaji_bersih' => $estimasiGajiBersih,
+                'id_absensi' => $kehadiran->pluck('id')->implode(','),
             ]
         ]);
     }
@@ -182,11 +185,15 @@ class KeuanganProyekController extends Controller
             'pegawai_id' => 'required',
             'nominal_dibayar' => 'required|numeric|min:0',
             'estimasi_gaji_sistem' => 'required|numeric',
+            'id_absensi' => 'nullable|string',
         ]);
 
         // Gunakan DB Transaction agar uang aman jika tiba-tiba mati lampu/error
         DB::transaction(function () use ($request, $proyek) {
-
+            if ($request->filled('id_absensi')) {
+                $idAbsensis = explode(',', $request->id_absensi);
+                Absensi::whereIn('id', $idAbsensis)->update(['status_pembayaran' => 'Dibayar']);
+            }
             // 1. LUNASKAN SEMUA KASBON LAMA (Karena sudah dihitung di kertas buram)
             Kasbon::where('pegawai_id', $request->pegawai_id)
                 ->where('proyek_id', $proyek->id)
@@ -360,13 +367,13 @@ class KeuanganProyekController extends Controller
                     $pathBukti = $request->file('bukti_file')->store('bukti_keuangan', 'public');
                 }
 
-                \App\Models\KeuanganProyek::create([
+                KeuanganProyek::create([
                     'proyek_id' => $proyek->id,
                     'tipe' => 'Pengeluaran',
                     'kategori' => 'Upah Tukang',
                     'nominal' => $totalKasKeluar,
                     'tanggal' => date('Y-m-d'),
-                    'keterangan' => 'Pembayaran Gaji Massal Tukang (Periode: ' . \Carbon\Carbon::parse($periodeStart)->format('d/m/y') . ' s/d ' . \Carbon\Carbon::parse($periodeEnd)->format('d/m/y') . ')',
+                    'keterangan' => 'Pembayaran Gaji Massal Tukang (Periode: ' . Carbon::parse($periodeStart)->format('d/m/y') . ' s/d ' . Carbon::parse($periodeEnd)->format('d/m/y') . ')',
                     'bukti_file' => $pathBukti, // <--- Foto/Dokumen disimpan di sini
                 ]);
             }
@@ -374,5 +381,30 @@ class KeuanganProyekController extends Controller
 
         // 5. REDIRECT: Arahkan kembali ke halaman Keuangan Proyek dengan pesan sukses
         return redirect()->route('proyek.keuangan', $proyek->id)->with('success', 'Gaji massal berhasil dibayarkan, absensi telah digembok, dan saldo kas proyek telah dipotong!');
+    }
+
+    public function unduhPdf($id)
+    {
+        $proyek = Proyek::with('keuangans')->findOrFail($id);
+
+        // Hitung total pemasukan dan pengeluaran secara akurat menggunakan kolom 'tipe'
+        $totalPemasukan = $proyek->keuangans->where('tipe', 'Pemasukan')->sum('nominal');
+        $totalPengeluaran = $proyek->keuangans->where('tipe', 'Pengeluaran')->sum('nominal');
+        $kasTersedia = $totalPemasukan - $totalPengeluaran;
+
+        // Data yang akan dikirim ke view PDF
+        $data = [
+            'proyek' => $proyek,
+            'totalAnggaran' => $proyek->anggaran,
+            'totalPemasukan' => $totalPemasukan,
+            'totalPengeluaran' => $totalPengeluaran,
+            'kasTersedia' => $kasTersedia,
+            'tanggal' => now()->translatedFormat('d F Y')
+        ];
+
+        $pdf = Pdf::loadView('pdf.laporan-keuangan', $data)
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->download('Laporan-Keuangan-' . $proyek->nama_proyek . '.pdf');
     }
 }

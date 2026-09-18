@@ -20,7 +20,7 @@ class ProyekController extends Controller
 
     public function store(Request $request)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') abort(403);
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) abort(403);
 
         $request->validate([
             'nama_proyek' => 'required|string|max:255',
@@ -50,7 +50,7 @@ class ProyekController extends Controller
 
     public function update(Request $request, Proyek $proyek)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') abort(403);
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) abort(403);
 
         $request->validate([
             'nama_proyek' => 'required|string|max:255',
@@ -85,26 +85,27 @@ class ProyekController extends Controller
     // Menghapus proyek
     public function destroy(Proyek $proyek)
     {
-        if (!Auth::check() || Auth::user()->role !== 'admin') abort(403);
+        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) abort(403);
         if ($proyek->gambar && Storage::disk('public')->exists($proyek->gambar)) {
             Storage::disk('public')->delete($proyek->gambar);
         }
         $proyek->delete();
-        return back()->with('success', 'Proyek beserta fotonya berhasil dihapus!');
+        return redirect()->route('proyek.index')
+            ->with('success', 'Proyek beserta fotonya berhasil dihapus!');
     }
 
     public function show(Proyek $proyek)
     {
-        // 1. Memuat data proyek sekaligus daftar pekerja DAN item pekerjaannya
-        $proyek->load(['pegawais', 'itemPekerjaans']);
-        // 2. Mencari pegawai yang nganggur
-        $pegawaiTersedia = \App\Models\Pegawai::whereDoesntHave('proyeks', function ($query) {
+        $proyek->load(['pegawais.jabatan', 'itemPekerjaans']);
+        $pekerjaPerJabatan = $proyek->pegawais->groupBy(function ($pekerja) {
+            return $pekerja->jabatan->nama_jabatan ?? 'Tanpa Jabatan';
+        });
+        $pegawaiTersedia = Pegawai::whereDoesntHave('proyeks', function ($query) {
             $query->whereIn('status', ['Akan Dimulai', 'Berjalan']);
-        })->get();
+        })->with('jabatan')->get();
 
-        return view('Admin.detail-manajemen-proyek', compact('proyek', 'pegawaiTersedia'));
+        return view('Admin.detail-manajemen-proyek', compact('proyek', 'pekerjaPerJabatan', 'pegawaiTersedia'));
     }
-
     // 2. Menugaskan pekerja ke proyek (Plotting)
     public function assignPegawai(Request $request, Proyek $proyek)
     {

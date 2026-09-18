@@ -3,15 +3,15 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"> <!-- Mencegah zoom di HP -->
+    <!-- Diubah agar tidak kaku di layar besar, tetap aman untuk mobile -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title') - CV Mahesa Karya Perdana</title>
 
     <!-- Impor Tailwind CSS via Vite -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    <!-- Opsional: Font Google (Ganti dengan font pilihan Anda jika ada) -->
+    <!-- Google Font & SweetAlert2 -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
@@ -31,7 +31,7 @@
         icon: 'success',
         title: 'Berhasil!',
         text: "{{ session('success') }}",
-        confirmButtonColor: '#0c2340', // Warna navy brand Anda
+        confirmButtonColor: '#0c2340',
         timer: 3000
     });
     @endif

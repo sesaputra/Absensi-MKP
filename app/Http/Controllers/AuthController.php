@@ -23,7 +23,7 @@ class AuthController extends Controller
             $request->session()->regenerate();
 
             // 3. Cek Role dan Arahkan ke halaman yang sesuai
-            if (Auth::user()->role === 'admin') {
+            if (Auth::user()->role === 'super_admin' || Auth::user()->role === 'admin') {
                 return redirect()->intended('/dashboard');
             } elseif (Auth::user()->role === 'pengawas') {
                 return redirect()->intended('pengawas/dashboard');

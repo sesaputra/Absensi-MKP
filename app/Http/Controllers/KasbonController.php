@@ -10,21 +10,18 @@ use Illuminate\Support\Facades\DB;
 
 class KasbonController extends Controller
 {
-    public function store(Request $request, $proyek_id)
+    public function store(Request $request, Proyek $proyek)
     {
         $request->validate([
-            'pegawai_id' => 'required',
+            'pegawai_id' => 'required|exists:pegawais,id',
             'nominal' => 'required|numeric|min:1',
             'tanggal' => 'required|date',
             'keterangan' => 'nullable|string',
         ]);
 
-        // Gunakan DB Transaction agar pencatatan Kasbon dan Buku Kas terjadi bersamaan
-        DB::transaction(function () use ($request, $proyek_id) {
-
-            // 1. Catat ke tabel Kasbon (sebagai pengingat hutang)
+        DB::transaction(function () use ($request, $proyek) {
             Kasbon::create([
-                'proyek_id' => $proyek_id,
+                'proyek_id' => $proyek->id,
                 'pegawai_id' => $request->pegawai_id,
                 'tanggal' => $request->tanggal,
                 'nominal' => $request->nominal,
@@ -32,13 +29,12 @@ class KasbonController extends Controller
                 'status' => 'Belum Lunas',
             ]);
 
-            // 2. POTONG UANG KAS PROYEK SECARA REAL-TIME!
             $pegawai = Pegawai::find($request->pegawai_id);
 
             KeuanganProyek::create([
-                'proyek_id' => $proyek_id,
+                'proyek_id' => $proyek->id,
                 'tipe' => 'Pengeluaran',
-                'kategori' => 'Kasbon Tukang', // Kategori khusus agar mudah dilacak
+                'kategori' => 'Kasbon Tukang',
                 'nominal' => $request->nominal,
                 'tanggal' => $request->tanggal,
                 'keterangan' => 'Pencairan Kasbon a.n ' . $pegawai->nama . ($request->keterangan ? ' (' . $request->keterangan . ')' : ''),
