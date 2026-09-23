@@ -93,11 +93,13 @@ jobs:
           fetch-depth: 1
 
       - name: Generate .env from ENV_FILE secret
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
         run: |
           set -euo pipefail
           umask 077
-          # Write full .env from single environment secret ENV_FILE (auto-masked by GitHub)
-          printf '%s' "${{ secrets.ENV_FILE }}" > .env
+          # Pass via env so shell does not expand ${APP_NAME} etc inside the secret value
+          printf '%s' "$ENV_FILE" > .env
           chmod 600 .env
           echo ".env written ($(wc -l < .env) lines)"
           grep -q "^APP_KEY=base64" .env || { echo "::error::APP_KEY missing or not base64"; exit 1; }
@@ -194,11 +196,13 @@ jobs:
           fetch-depth: 1
 
       - name: Generate .env from ENV_FILE secret
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
         run: |
           set -euo pipefail
           umask 077
-          # Write full .env from single environment secret ENV_FILE (auto-masked by GitHub)
-          printf '%s' "${{ secrets.ENV_FILE }}" > .env
+          # Pass via env so shell does not expand ${APP_NAME} etc inside the secret value
+          printf '%s' "$ENV_FILE" > .env
           chmod 600 .env
           echo ".env written ($(wc -l < .env) lines)"
           grep -q "^APP_KEY=base64" .env || { echo "::error::APP_KEY missing"; exit 1; }
