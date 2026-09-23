@@ -77,7 +77,7 @@ jobs:
     name: Deploy Staging
     if: github.ref == 'refs/heads/development'
     needs: build
-    runs-on: [self-hosted, lab-003, staging]
+    runs-on: [self-hosted, lab-003]
     environment:
       name: staging
       url: ${{ vars.APP_URL || 'http://staging' }}
