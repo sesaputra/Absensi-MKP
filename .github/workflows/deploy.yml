@@ -1,0 +1,261 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main, development]
+  workflow_dispatch:
+
+# Least privilege for GITHUB_TOKEN; build needs packages:write to push ghcr
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # 1. Build on GitHub-hosted runner (shared) → push to GHCR
+  # ─────────────────────────────────────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+      image_url: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta (tags & labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/sesaputra/absensi-mkp
+          # main → production, development → staging
+          tags: |
+            type=ref,event=branch
+            type=sha,format=short,prefix=
+            type=raw,value=staging,enable=${{ github.ref == 'refs/heads/development' }}
+            type=raw,value=production,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+          # provenance not needed for simple deploy
+          provenance: false
+
+  # ─────────────────────────────────────────────────────────────
+  # 2a. Deploy Staging (development branch → staging VPS)
+  # ─────────────────────────────────────────────────────────────
+  deploy-staging:
+    name: Deploy Staging
+    if: github.ref == 'refs/heads/development'
+    needs: build
+    runs-on: [self-hosted, absensi-mkp, staging]
+    environment:
+      name: staging
+      url: ${{ vars.APP_URL || 'http://staging' }}
+    concurrency:
+      group: deploy-staging
+      cancel-in-progress: false
+    steps:
+      - name: Checkout (for compose files)
+        uses: actions/checkout@v4
+        with:
+          ref: development
+          clean: false
+          fetch-depth: 1
+
+      - name: Generate .env from ENV_FILE secret
+        run: |
+          set -euo pipefail
+          umask 077
+          # Write full .env from single environment secret ENV_FILE (auto-masked by GitHub)
+          printf '%s' "${{ secrets.ENV_FILE }}" > .env
+          chmod 600 .env
+          echo ".env written ($(wc -l < .env) lines)"
+          grep -q "^APP_KEY=base64" .env || { echo "::error::APP_KEY missing or not base64"; exit 1; }
+          grep -q "^DB_HOST=db" .env || echo "::warning::DB_HOST should be 'db' for docker network"
+          grep -q "^DB_CONNECTION=mysql" .env || echo "::warning::DB_CONNECTION should be mysql"
+          # Do not cat .env - secret already masked in logs
+
+      - name: Log in to GHCR (for pull)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull images
+        env:
+          TAG: ${{ github.sha }}
+        run: |
+          # Try SHA tag first (from build), fallback to staging tag
+          echo "Pulling ghcr.io/sesaputra/absensi-mkp:${TAG} and staging"
+          docker pull ghcr.io/sesaputra/absensi-mkp:${TAG} || docker pull ghcr.io/sesaputra/absensi-mkp:staging || true
+          # Retag for compose TAG var
+          docker tag ghcr.io/sesaputra/absensi-mkp:${TAG} ghcr.io/sesaputra/absensi-mkp:staging || true
+          # Also ensure compose can resolve ${TAG:-latest}
+          TAG=staging docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml pull || true
+
+      - name: Deploy stack
+        env:
+          TAG: staging
+        run: |
+          set -e
+          # Ensure infra-network exists (Caddy network you manage)
+          docker network inspect infra-network >/dev/null 2>&1 || docker network create infra-network || true
+          echo "TAG=$TAG"
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml up -d --remove-orphans --wait
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml ps
+
+      - name: Run Laravel optimizations (best practice)
+        run: |
+          set -e
+          # Wait for app healthy (compose --wait already, extra check)
+          for i in 1 2 3 4 5 6; do
+            if docker inspect --format='{{.State.Health.Status}}' laravel_app 2>/dev/null | grep -q "healthy"; then echo "app healthy"; break; fi
+            echo "waiting for app healthy... $i/6"
+            sleep 10
+          done
+          # Migrations - always force in deploy, fail deploy if migration fails
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan migrate --force --no-interaction
+          # Caches - staging should mimic prod (set APP_ENV=production in staging .env if you want caching)
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan config:cache || true
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan route:cache || true
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan view:cache || true
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan storage:link || true
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan queue:restart || true
+
+      - name: Healthcheck via webserver
+        run: |
+          set -e
+          # Hit via webserver inside network
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T webserver wget --no-verbose --tries=1 --spider http://127.0.0.1/ || \
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T webserver wget --spider http://localhost/
+          echo "Healthcheck passed"
+
+      - name: Prune old images (keep last 2)
+        run: |
+          docker image prune -f || true
+          docker builder prune -f --filter until=24h || true
+          docker images ghcr.io/sesaputra/absensi-mkp --format "{{.ID}} {{.Repository}}:{{.Tag}} {{.CreatedAt}}" | head -n 20
+
+      - name: Logout ghcr
+        if: always()
+        run: docker logout ghcr.io || true
+
+  # ─────────────────────────────────────────────────────────────
+  # 2b. Deploy Production (main branch → production VPS)
+  # ─────────────────────────────────────────────────────────────
+  deploy-production:
+    name: Deploy Production
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: [self-hosted, absensi-mkp, production]
+    environment:
+      name: production
+      url: ${{ vars.APP_URL || 'http://production' }}
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - name: Checkout (for compose files)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          clean: false
+          fetch-depth: 1
+
+      - name: Generate .env from ENV_FILE secret
+        run: |
+          set -euo pipefail
+          umask 077
+          # Write full .env from single environment secret ENV_FILE (auto-masked by GitHub)
+          printf '%s' "${{ secrets.ENV_FILE }}" > .env
+          chmod 600 .env
+          echo ".env written ($(wc -l < .env) lines)"
+          grep -q "^APP_KEY=base64" .env || { echo "::error::APP_KEY missing"; exit 1; }
+          grep -q "^DB_HOST=db" .env || echo "::warning::DB_HOST should be db"
+          grep -q "^DB_CONNECTION=mysql" .env || echo "::warning::DB_CONNECTION should be mysql"
+          # Enforce production checks
+          if grep -q "^APP_DEBUG=true" .env; then echo "::warning::APP_DEBUG should be false in production"; fi
+          # Do not cat .env - secret already masked in logs
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull images
+        env:
+          TAG: ${{ github.sha }}
+        run: |
+          docker pull ghcr.io/sesaputra/absensi-mkp:${TAG} || docker pull ghcr.io/sesaputra/absensi-mkp:production || true
+          docker tag ghcr.io/sesaputra/absensi-mkp:${TAG} ghcr.io/sesaputra/absensi-mkp:production || true
+          TAG=production docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml pull || true
+
+      - name: Deploy stack
+        env:
+          TAG: production
+        run: |
+          set -e
+          docker network inspect infra-network >/dev/null 2>&1 || docker network create infra-network || true
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml up -d --remove-orphans --wait
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml ps
+
+      - name: Run Laravel optimizations
+        run: |
+          set -e
+          for i in 1 2 3 4 5 6; do
+            if docker inspect --format='{{.State.Health.Status}}' laravel_app 2>/dev/null | grep -q "healthy"; then echo "app healthy"; break; fi
+            echo "waiting for app healthy... $i/6"
+            sleep 10
+          done
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan migrate --force --no-interaction
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan config:cache
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan route:cache
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan view:cache
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan storage:link || true
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan queue:restart || true
+
+      - name: Healthcheck
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T webserver wget --no-verbose --tries=1 --spider http://127.0.0.1/
+
+      - name: Prune
+        run: |
+          docker image prune -f || true
+          docker builder prune -f --filter until=24h || true
+
+      - name: Logout ghcr
+        if: always()
+        run: docker logout ghcr.io || true

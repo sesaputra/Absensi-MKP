@@ -1,0 +1,101 @@
+services:
+  # Service PHP-FPM (Aplikasi Laravel)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/sesaputra/absensi-mkp:${TAG:-latest}
+    container_name: laravel_app
+    restart: unless-stopped
+    working_dir: /var/www
+    env_file:
+      - .env
+    environment:
+      # Override defaults to work inside Docker network if .env still has sqlite/127.0.0.1
+      DB_CONNECTION: ${DB_CONNECTION:-mysql}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_DATABASE: ${DB_DATABASE:-absensi_mkp}
+      DB_USERNAME: ${DB_USERNAME:-laravel_user}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      # Ensure APP_URL points to nginx
+      APP_URL: ${APP_URL:-http://localhost:8000}
+    volumes:
+      # For dev hot-reload. For prod, remove this volume so image's built artifacts are used
+      - ./:/var/www
+      # Preserve vendor/build from image when bind-mount hides them (dev optimization)
+      - /var/www/vendor
+      - /var/www/public/build
+      - /var/www/node_modules
+    networks:
+      - laravel_network
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r \"if(@fsockopen('127.0.0.1',9000)) exit(0); exit(1);\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Service Nginx (Web Server)
+  webserver:
+    image: nginx:alpine
+    container_name: laravel_webserver
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./public:/var/www/public:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+    networks:
+      - laravel_network
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Service MySQL (Database)
+  db:
+    image: mysql:8.0
+    container_name: laravel_db
+    restart: unless-stopped
+    # Exposed for local debugging only - remove in prod or set to 127.0.0.1:3306
+    ports:
+      - "127.0.0.1:3306:3306"
+    env_file:
+      - .env
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-absensi_mkp}
+      MYSQL_USER: ${DB_USERNAME:-laravel_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-${DB_PASSWORD:-secret}}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - laravel_network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent || mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --innodb-buffer-pool-size=256M
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+
+networks:
+  laravel_network:
+    driver: bridge
+
+volumes:
+  db_data:
+    driver: local

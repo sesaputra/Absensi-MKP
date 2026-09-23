@@ -1,0 +1,28 @@
+# Caddy integration - attaches webserver to infra-network so your manually configured Caddy can reverse_proxy
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml up -d
+# Your Caddyfile: staging.yourdomain { reverse_proxy laravel_webserver:80 } OR reverse_proxy <project>-webserver-1:80
+# Do not add caddy service here - you manage it separately
+networks:
+  infra-network:
+    external: true
+    name: infra-network
+
+services:
+  webserver:
+    networks:
+      - laravel_network
+      - infra-network
+    # Expose instead of ports when behind Caddy; keep ports for direct debug if needed
+    # To hide from host: comment next 2 lines and rely on infra-network only
+    expose:
+      - "80"
+    # ports:
+    #   - "8000:80"
+
+  app:
+    networks:
+      - laravel_network
+
+  db:
+    networks:
+      - laravel_network
