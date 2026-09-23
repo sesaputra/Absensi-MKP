@@ -73,8 +73,11 @@ services:
       - .env
     environment:
       MYSQL_DATABASE: ${DB_DATABASE:-absensi_mkp}
-      MYSQL_USER: ${DB_USERNAME:-laravel_user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      # MySQL image errors if MYSQL_USER=root. Init user is always a dedicated app user.
+      # If .env has DB_USERNAME=root, Laravel connects as root using MYSQL_ROOT_PASSWORD
+      # (DB_ROOT_PASSWORD, falling back to DB_PASSWORD).
+      MYSQL_USER: ${DB_APP_USER:-laravel_user}
+      MYSQL_PASSWORD: ${DB_APP_PASSWORD:-${DB_PASSWORD:-secret}}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-${DB_PASSWORD:-secret}}
     volumes:
       - db_data:/var/lib/mysql

@@ -105,6 +105,10 @@ jobs:
           grep -q "^APP_KEY=base64" .env || { echo "::error::APP_KEY missing or not base64"; exit 1; }
           grep -q "^DB_HOST=db" .env || echo "::warning::DB_HOST should be 'db' for docker network"
           grep -q "^DB_CONNECTION=mysql" .env || echo "::warning::DB_CONNECTION should be mysql"
+          # MySQL image refuses MYSQL_USER=root; if Laravel uses root, passwords must match root
+          if grep -q "^DB_USERNAME=root" .env; then
+            echo "::warning::DB_USERNAME=root - ensure DB_PASSWORD equals DB_ROOT_PASSWORD (or DB_ROOT_PASSWORD unset) so Laravel can auth as root"
+          fi
           # Do not cat .env - secret already masked in logs
 
       - name: Log in to GHCR (for pull)
@@ -208,6 +212,10 @@ jobs:
           grep -q "^APP_KEY=base64" .env || { echo "::error::APP_KEY missing"; exit 1; }
           grep -q "^DB_HOST=db" .env || echo "::warning::DB_HOST should be db"
           grep -q "^DB_CONNECTION=mysql" .env || echo "::warning::DB_CONNECTION should be mysql"
+          # MySQL image refuses MYSQL_USER=root; if Laravel uses root, passwords must match root
+          if grep -q "^DB_USERNAME=root" .env; then
+            echo "::warning::DB_USERNAME=root - ensure DB_PASSWORD equals DB_ROOT_PASSWORD (or DB_ROOT_PASSWORD unset) so Laravel can auth as root"
+          fi
           # Enforce production checks
           if grep -q "^APP_DEBUG=true" .env; then echo "::warning::APP_DEBUG should be false in production"; fi
           # Do not cat .env - secret already masked in logs
