@@ -35,7 +35,6 @@ Route::middleware(['auth', 'role:admin,super_admin'])->group(function () {
     Route::get('/proyek/{proyek}/detail-absensi', [AbsensiController::class, 'detailAbsensi'])->name('admin.absensi.detail');
     Route::post('/absensi/setujui/{proyek_id}/{tanggal}', [AbsensiController::class, 'setujuiAbsensi'])->name('admin.absensi.setujui');
     Route::post('/absensi/tolak/{proyek_id}/{tanggal}', [AbsensiController::class, 'tolakAbsensi'])->name('admin.absensi.tolak');
-    Route::post('/absensi/{proyek}/sore', [AbsensiController::class, 'storeSore'])->name('absensi.storeSore');
 
     Route::get('/manajemen-pegawai', [PegawaiController::class, 'index'])->name('pegawai.index');
     Route::post('/manajemen-pegawai', [PegawaiController::class, 'store'])->name('pegawai.store');
@@ -77,4 +76,5 @@ Route::middleware(['auth', 'role:pengawas'])->group(function () {
     Route::get('/pengawas/dashboard', [PengawasController::class, 'dashboard'])->name('pengawas.dashboard');
     Route::get('/proyek/{proyek}/absensi', [AbsensiController::class, 'create'])->name('absensi.create');
     Route::post('/proyek/{proyek}/absensi', [AbsensiController::class, 'store'])->name('absensi.store');
+    Route::post('/absensi/{proyek}/sore', [AbsensiController::class, 'storeSore'])->name('absensi.storeSore');
 });
