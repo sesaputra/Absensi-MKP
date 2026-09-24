@@ -24,530 +24,1621 @@
 <!-- ============================================== -->
 <!-- HEADER PROYEK -->
 <!-- ============================================== -->
-<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 mb-8">
+{{-- =========================================================
+    DETAIL PROYEK
+========================================================= --}}
 
-    <!-- Baris Atas: Tombol Kembali & Tombol Aksi -->
-    <div class="flex flex-wrap items-center justify-between mb-6 pb-6 border-b border-slate-100 gap-4">
+<div class="space-y-6">
 
-        <!-- Tombol Kembali -->
-        <a href="{{ route('proyek.index') }}" class="inline-flex items-center text-sm font-semibold text-slate-500 hover:text-slate-900 transition-colors group">
-            <div class="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center mr-3 group-hover:bg-slate-100 transition-colors">
-                <svg class="w-4 h-4 text-slate-500 group-hover:text-slate-800 transform group-hover:-translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+    {{-- =====================================================
+        HERO DETAIL PROYEK
+    ====================================================== --}}
+    <section
+        class="relative isolate overflow-hidden rounded-[30px] bg-slate-950 text-white shadow-xl shadow-slate-200/50">
+
+        {{-- Background Image --}}
+        @if($proyek->gambar)
+        <div
+            class="absolute inset-0 -z-20 bg-cover bg-center opacity-[0.24]"
+            style="background-image: url('{{ asset('storage/' . $proyek->gambar) }}');"></div>
+        @else
+        <div
+            class="absolute inset-0 -z-20 bg-cover bg-center opacity-[0.18]"
+            style="background-image: url('{{ asset('images/flower-mkp.jpg') }}');"></div>
+        @endif
+
+        {{-- Main Gradient --}}
+        <div
+            class="absolute inset-0 -z-10 bg-gradient-to-br from-slate-950 via-slate-950/[0.96] to-blue-950/[0.92]"></div>
+
+        {{-- Decorative Glow --}}
+        <div
+            class="absolute -right-24 -top-24 -z-10 h-80 w-80 rounded-full bg-blue-500/15 blur-3xl"></div>
+
+        <div
+            class="absolute -bottom-40 left-1/3 -z-10 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl"></div>
+
+        {{-- Subtle Grid --}}
+        <div
+            class="absolute inset-0 -z-10 opacity-[0.035]"
+            style="
+                background-image:
+                    linear-gradient(rgba(255,255,255,.8) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(255,255,255,.8) 1px, transparent 1px);
+                background-size: 32px 32px;
+            "></div>
+
+        {{-- =================================================
+            HERO CONTENT
+        ================================================== --}}
+        <div class="relative px-6 py-7 sm:px-8 lg:px-10 lg:py-9">
+
+            {{-- Top Navigation --}}
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+                {{-- Back --}}
+                <a
+                    href="{{ route('proyek.index') }}"
+                    class="group inline-flex w-fit items-center gap-2.5 text-[11px] font-medium text-slate-300 transition-colors hover:text-white">
+                    <span
+                        class="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] backdrop-blur-md transition-all duration-300 group-hover:-translate-x-0.5 group-hover:bg-white/[0.10]">
+                        <svg
+                            class="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.7"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                    </span>
+
+                    Kembali ke Daftar Proyek
+                </a>
+
+                {{-- Action Buttons --}}
+                @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
+                <div class="flex items-center gap-2">
+
+                    {{-- Edit --}}
+                    <button
+                        type="button"
+                        onclick="toggleModal('modalEditProyek')"
+                        class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.07] px-3.5 py-2 text-[11px] font-semibold text-slate-200 backdrop-blur-md transition-all duration-300 hover:bg-white/[0.12] hover:text-white">
+                        <svg
+                            class="h-3.5 w-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.7"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+
+                        Edit Proyek
+                    </button>
+
+                    {{-- Delete --}}
+                    <form
+                        id="form-hapus-proyek"
+                        action="{{ route('proyek.destroy', $proyek->id) }}"
+                        method="POST"
+                        class="m-0">
+                        @csrf
+                        @method('DELETE')
+
+                        <button
+                            type="button"
+                            onclick="konfirmasiHapusProyek()"
+                            class="inline-flex items-center gap-2 rounded-xl border border-rose-400/10 bg-rose-500/[0.08] px-3.5 py-2 text-[11px] font-semibold text-rose-300 backdrop-blur-md transition-all duration-300 hover:bg-rose-500/[0.15] hover:text-rose-200">
+                            <svg
+                                class="h-3.5 w-3.5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.7"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+
+                            Hapus
+                        </button>
+                    </form>
+
+                </div>
+                @endif
+
+            </div>
+
+
+            {{-- =================================================
+                PROJECT IDENTITY
+            ================================================== --}}
+            <div class="mt-8 grid grid-cols-1 gap-7 lg:grid-cols-[240px_1fr] lg:items-center">
+
+                {{-- Project Image --}}
+                <div
+                    class="group relative h-48 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.05] shadow-2xl lg:h-44">
+
+                    @if($proyek->gambar)
+
+                    <img
+                        src="{{ asset('storage/' . $proyek->gambar) }}"
+                        alt="{{ $proyek->nama_proyek }}"
+                        class="h-full w-full object-cover transition duration-700 group-hover:scale-105" />
+
+                    <div
+                        class="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent"></div>
+
+                    @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
+                    <button
+                        type="button"
+                        onclick="toggleModal('modalEditProyek')"
+                        class="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-950/60 px-3 py-1.5 text-[10px] font-medium text-white backdrop-blur-md opacity-0 transition duration-300 group-hover:opacity-100">
+                        <svg
+                            class="h-3 w-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.7"
+                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0118.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.7"
+                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+
+                        Ubah Foto
+                    </button>
+                    @endif
+
+                    @else
+
+                    <div class="flex h-full flex-col items-center justify-center text-slate-500">
+
+                        <div
+                            class="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05]">
+                            <svg
+                                class="h-6 w-6"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.4"
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+
+                        <span class="text-[10px] text-slate-500">
+                            Belum ada foto proyek
+                        </span>
+
+                    </div>
+
+                    @endif
+
+                </div>
+
+
+                {{-- Project Information --}}
+                <div class="min-w-0">
+
+                    {{-- Badge --}}
+                    <div class="mb-3 flex flex-wrap items-center gap-2">
+
+                        <span
+                            class="inline-flex items-center gap-2 rounded-full border border-blue-400/10 bg-blue-400/[0.08] px-3 py-1.5 text-[9px] font-medium uppercase tracking-[0.16em] text-blue-300">
+                            <span class="h-1.5 w-1.5 rounded-full bg-blue-400"></span>
+                            Detail Proyek
+                        </span>
+
+                        @php
+                        $badgeClass = '';
+                        $dotClass = '';
+
+                        if($proyek->status == 'Berjalan') {
+                        $badgeClass = 'border-emerald-400/10 bg-emerald-400/[0.08] text-emerald-300';
+                        $dotClass = 'bg-emerald-400 animate-pulse';
+                        }
+                        elseif($proyek->status == 'Akan Dimulai') {
+                        $badgeClass = 'border-blue-400/10 bg-blue-400/[0.08] text-blue-300';
+                        $dotClass = 'bg-blue-400';
+                        }
+                        elseif($proyek->status == 'Ditunda') {
+                        $badgeClass = 'border-amber-400/10 bg-amber-400/[0.08] text-amber-300';
+                        $dotClass = 'bg-amber-400';
+                        }
+                        else {
+                        $badgeClass = 'border-slate-400/10 bg-slate-400/[0.08] text-slate-300';
+                        $dotClass = 'bg-slate-400';
+                        }
+                        @endphp
+
+                        <span
+                            class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[9px] font-medium uppercase tracking-[0.12em] {{ $badgeClass }}">
+                            <span class="h-1.5 w-1.5 rounded-full {{ $dotClass }}"></span>
+                            {{ $proyek->status }}
+                        </span>
+
+                    </div>
+
+
+                    {{-- Project Name --}}
+                    <h1
+                        class="max-w-4xl text-[28px] font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-[32px] lg:text-[36px]">
+                        {{ $proyek->nama_proyek }}
+                    </h1>
+
+
+                    {{-- Location --}}
+                    <div
+                        class="mt-3 flex items-start gap-2 text-[12px] leading-5 text-slate-300">
+                        <svg
+                            class="mt-0.5 h-4 w-4 shrink-0 text-blue-300"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.7"
+                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.7"
+                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+
+                        <span>{{ $proyek->lokasi }}</span>
+                    </div>
+
+
+                    {{-- Project Stats --}}
+                    <div class="mt-7 grid grid-cols-2 gap-3 xl:grid-cols-4">
+
+                        {{-- Client --}}
+                        <div
+                            class="rounded-2xl border border-white/10 bg-white/[0.055] p-4 backdrop-blur-md">
+                            <p
+                                class="text-[9px] font-medium uppercase tracking-[0.12em] text-slate-400">
+                                Pemilik / Klien
+                            </p>
+
+                            <p
+                                class="mt-2 truncate text-[13px] font-semibold text-white">
+                                {{ $proyek->nama_pemilik ?? 'Belum Diatur' }}
+                            </p>
+
+                            <p
+                                class="mt-1 truncate text-[10px] text-slate-400">
+                                {{ $proyek->kontak_pemilik ?? '-' }}
+                            </p>
+                        </div>
+
+
+                        {{-- Contract Value --}}
+                        <div
+                            class="rounded-2xl border border-white/10 bg-white/[0.055] p-4 backdrop-blur-md">
+                            <p
+                                class="text-[9px] font-medium uppercase tracking-[0.12em] text-slate-400">
+                                Nilai Kontrak
+                            </p>
+
+                            <p
+                                class="mt-2 text-[18px] font-semibold tracking-[-0.02em] text-emerald-300">
+                                Rp {{ number_format($proyek->anggaran, 0, ',', '.') }}
+                            </p>
+
+                            <p class="mt-1 text-[10px] text-slate-400">
+                                Anggaran / RAB
+                            </p>
+                        </div>
+
+
+                        {{-- Timeline --}}
+                        <div
+                            class="rounded-2xl border border-white/10 bg-white/[0.055] p-4 backdrop-blur-md">
+                            <p
+                                class="text-[9px] font-medium uppercase tracking-[0.12em] text-slate-400">
+                                Timeline
+                            </p>
+
+                            <p
+                                class="mt-2 text-[12px] font-semibold text-white">
+                                {{ \Carbon\Carbon::parse($proyek->tanggal_mulai)->format('d M Y') }}
+                            </p>
+
+                            <p class="mt-1 text-[10px] text-slate-400">
+                                s/d
+                                {{ $proyek->estimasi_selesai
+                                    ? \Carbon\Carbon::parse($proyek->estimasi_selesai)->format('d M Y')
+                                    : 'Belum Ditentukan'
+                                }}
+                            </p>
+                        </div>
+
+
+                        {{-- Team --}}
+                        <div
+                            class="rounded-2xl border border-white/10 bg-white/[0.055] p-4 backdrop-blur-md">
+                            <p
+                                class="text-[9px] font-medium uppercase tracking-[0.12em] text-slate-400">
+                                Tim Lapangan
+                            </p>
+
+                            <div class="mt-2 flex items-center gap-2">
+
+                                <span
+                                    class="flex h-7 w-7 items-center justify-center rounded-lg border border-blue-400/10 bg-blue-400/[0.08]">
+                                    <svg
+                                        class="h-3.5 w-3.5 text-blue-300"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="1.7"
+                                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                </span>
+
+                                <span
+                                    class="text-[18px] font-semibold tracking-[-0.02em] text-white">
+                                    {{ $proyek->pegawais->count() }}
+                                </span>
+
+                                <span class="text-[10px] text-slate-400">
+                                    Orang
+                                </span>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    {{-- =====================================================
+        QUICK ACCESS
+    ====================================================== --}}
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+
+        {{-- Buku Harian --}}
+        <a
+            href="{{ route('proyek.laporan.admin', $proyek->id) }}"
+            class="group relative block overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md">
+
+            <div
+                class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-blue-50 transition-transform duration-500 group-hover:scale-150"></div>
+
+            <div class="relative flex items-start gap-4">
+
+                <div
+                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-blue-100 bg-blue-50 text-blue-600 transition-colors duration-300 group-hover:bg-blue-600 group-hover:text-white">
+                    <svg
+                        class="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.6"
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                </div>
+
+                <div class="min-w-0">
+                    <h3
+                        class="text-[14px] font-semibold tracking-[-0.01em] text-slate-900 transition-colors group-hover:text-blue-700">
+                        Buku Harian Lapangan
+                    </h3>
+
+                    <p
+                        class="mt-1 text-[12px] leading-5 text-slate-500">
+                        Catatan cuaca, foto, dan aktivitas lapangan.
+                    </p>
+                </div>
+
+            </div>
+
+            <div
+                class="absolute bottom-5 right-5 flex h-7 w-7 translate-x-2 items-center justify-center rounded-full bg-blue-50 text-blue-600 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                <svg
+                    class="h-3.5 w-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.7"
+                        d="M9 5l7 7-7 7" />
                 </svg>
             </div>
-            Kembali ke Daftar Proyek
+
         </a>
 
-        <!-- Tombol Aksi (Edit & Hapus) - Hanya Admin/Super Admin -->
-        @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
-        <div class="flex items-center gap-2.5">
-            <button type="button" onclick="toggleModal('modalEditProyek')" class="inline-flex items-center px-3.5 py-1.5 bg-white border border-slate-200 text-blue-600 hover:bg-blue-50 hover:border-blue-200 text-sm font-bold rounded-xl transition-colors shadow-sm">
-                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                Edit Proyek
-            </button>
 
-            <form id="form-hapus-proyek" action="{{ route('proyek.destroy', $proyek->id) }}" method="POST" class="m-0">
-                @csrf
-                @method('DELETE')
-                <button type="button" onclick="konfirmasiHapusProyek()" class="inline-flex items-center px-3.5 py-1.5 bg-white border border-slate-200 text-rose-600 hover:bg-rose-50 hover:border-rose-200 text-sm font-bold rounded-xl transition-colors shadow-sm">
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+        {{-- Keuangan --}}
+        <a
+            href="{{ route('proyek.keuangan', $proyek->id) }}"
+            class="group relative block overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
+
+            <div
+                class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-emerald-50 transition-transform duration-500 group-hover:scale-150"></div>
+
+            <div class="relative flex items-start gap-4">
+
+                <div
+                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-600 transition-colors duration-300 group-hover:bg-emerald-600 group-hover:text-white">
+                    <svg
+                        class="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.6"
+                            d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
-                    Hapus
-                </button>
-            </form>
-        </div>
-        @endif
-    </div>
+                </div>
 
-    <!-- Baris Bawah: Info Detail Proyek -->
-    <div class="flex flex-col md:flex-row gap-6 md:gap-8 md:items-center">
+                <div class="min-w-0">
+                    <h3
+                        class="text-[14px] font-semibold tracking-[-0.01em] text-slate-900 transition-colors group-hover:text-emerald-700">
+                        Laporan Keuangan
+                    </h3>
 
-        <!-- Area Gambar Proyek -->
-        <div class="w-full md:w-64 h-40 bg-slate-50 rounded-2xl flex-shrink-0 border border-slate-200 shadow-sm overflow-hidden relative flex items-center justify-center group">
-            @if($proyek->gambar)
-            <img src="{{ asset('storage/' . $proyek->gambar) }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="{{ $proyek->nama_proyek }}">
-            @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
-            <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px] cursor-pointer"
-                role="button" tabindex="0"
-                onclick="toggleModal('modalEditProyek')"
-                onkeydown="if(event.key==='Enter'||event.key===' ') toggleModal('modalEditProyek')">
-                <span class="bg-white/90 text-slate-800 text-[10px] font-bold px-3 py-1.5 rounded-lg flex items-center shadow-lg">
-                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                    Ubah Foto
-                </span>
+                    <p
+                        class="mt-1 text-[12px] leading-5 text-slate-500">
+                        Kelola dana termin dan pengeluaran proyek.
+                    </p>
+                </div>
+
             </div>
-            @endif
-            @else
-            <div class="flex flex-col items-center justify-center text-slate-300">
-                <svg class="w-10 h-10 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+
+            <div
+                class="absolute bottom-5 right-5 flex h-7 w-7 translate-x-2 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100">
+                <svg
+                    class="h-3.5 w-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.7"
+                        d="M9 5l7 7-7 7" />
                 </svg>
-                <span class="text-[11px] font-medium">Belum ada foto</span>
             </div>
-            @endif
-        </div>
 
-        <!-- Info Detail (Judul, Lokasi, Grid Data) -->
-        <div class="flex-1">
-            <div class="mb-3">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-                    <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">{{ $proyek->nama_proyek }}</h1>
+        </a>
 
-                    @php
-                    $badgeClass = ''; $dotClass = '';
-                    if($proyek->status == 'Berjalan') { $badgeClass = 'bg-emerald-100 text-emerald-700 border-emerald-200'; $dotClass = 'bg-emerald-600 animate-pulse'; }
-                    elseif($proyek->status == 'Akan Dimulai') { $badgeClass = 'bg-blue-100 text-blue-700 border-blue-200'; $dotClass = 'bg-blue-600'; }
-                    elseif($proyek->status == 'Ditunda') { $badgeClass = 'bg-amber-100 text-amber-700 border-amber-200'; $dotClass = 'bg-amber-600'; }
-                    else { $badgeClass = 'bg-slate-100 text-slate-700 border-slate-200'; $dotClass = 'bg-slate-500'; }
-                    @endphp
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border {{ $badgeClass }} w-max">
-                        <span class="w-2 h-2 rounded-full {{ $dotClass }} mr-2"></span> {{ $proyek->status }}
+
+        {{-- AI Forecasting --}}
+        <div
+            class="group relative overflow-hidden rounded-2xl border border-slate-700 bg-gradient-to-br from-slate-950 to-blue-950 p-5 shadow-sm">
+
+            <div
+                class="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-amber-400/10 blur-2xl transition-all duration-500 group-hover:bg-amber-400/20"></div>
+
+            <div class="relative flex items-start gap-4">
+
+                <div
+                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-400/10 bg-amber-400/[0.08] text-amber-300">
+                    <svg
+                        class="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.7"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+
+                <div>
+                    <h3
+                        class="text-[14px] font-semibold tracking-[-0.01em] text-amber-300">
+                        AI Forecasting
+                    </h3>
+
+                    <p
+                        class="mt-1 text-[11px] leading-5 text-slate-400">
+                        Prediksi stok material dengan metode SES.
+                    </p>
+
+                    <span
+                        class="mt-3 inline-flex rounded-full border border-amber-400/10 bg-amber-400/[0.06] px-2.5 py-1 text-[8px] font-medium uppercase tracking-[0.12em] text-amber-300">
+                        Segera Hadir
                     </span>
                 </div>
 
-                <p class="text-sm text-slate-500 mt-2 flex items-center font-medium">
-                    <svg class="w-4 h-4 mr-1.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                    {{ $proyek->lokasi }}
-                </p>
             </div>
 
-            <!-- Grid Data Proyek -->
-            <div class="grid grid-cols-2 xl:grid-cols-4 gap-6 mt-5 border-t border-slate-100 pt-5">
-                <div>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Pemilik / Klien</p>
-                    <p class="text-sm font-bold text-slate-800 leading-tight">{{ $proyek->nama_pemilik ?? 'Belum Diatur' }}</p>
-                    <p class="text-[11px] font-medium text-slate-500 mt-0.5">{{ $proyek->kontak_pemilik ?? '-' }}</p>
-                </div>
-                <div>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Nilai Kontrak</p>
-                    <p class="text-base font-black text-emerald-600">Rp {{ number_format($proyek->anggaran, 0, ',', '.') }}</p>
-                </div>
-                <div>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Timeline Proyek</p>
-                    <p class="text-sm font-bold text-slate-800">
-                        {{ \Carbon\Carbon::parse($proyek->tanggal_mulai)->format('d M Y') }} - {{ $proyek->estimasi_selesai ? \Carbon\Carbon::parse($proyek->estimasi_selesai)->format('d M Y') : 'Belum Ditentukan' }}
-                    </p>
-                </div>
-                <div>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Tim Lapangan</p>
-                    <p class="text-sm font-bold text-slate-800 flex items-center">
-                        <svg class="w-4 h-4 mr-1.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </div>
+
+    </div>
+
+
+    {{-- =====================================================
+        PROJECT TABS
+    ====================================================== --}}
+    <section
+        class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
+        <div class="px-5 pt-5 sm:px-6 lg:px-8 lg:pt-7">
+
+            {{-- Tab Navigation --}}
+            <div class="overflow-x-auto border-b border-slate-200">
+
+                <nav
+                    class="flex min-w-max gap-6"
+                    aria-label="Navigasi proyek">
+
+                    {{-- Tim --}}
+                    <button
+                        id="tab-btn-tim"
+                        onclick="switchTabProyek('tim')"
+                        class="inline-flex items-center gap-2 border-b-2 border-blue-500 px-1 py-3.5 text-[12px] font-semibold text-slate-900 transition-colors focus:outline-none">
+
+                        <svg
+                            class="h-4 w-4 text-blue-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.7"
+                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                         </svg>
-                        {{ $proyek->pegawais->count() }} Orang
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- ============================================== -->
-<!-- WIDGET RINGKASAN METRIK & JALAN PINTAS -->
-<!-- ============================================== -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        Tim Proyek Lapangan
 
-    <!-- WIDGET 1: BUKU HARIAN LAPANGAN -->
-    <a href="{{ route('proyek.laporan.admin', $proyek->id) }}" class="group block bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md hover:border-blue-300 transition-all duration-300 relative overflow-hidden">
-        <div class="absolute -right-6 -top-6 w-24 h-24 bg-blue-50 rounded-full group-hover:scale-150 transition-transform duration-500 -z-10"></div>
-        <div class="flex items-start gap-4">
-            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                </svg>
-            </div>
-            <div>
-                <h3 class="text-base font-bold text-slate-900 mb-1 group-hover:text-blue-700 transition-colors">Buku Harian Lapangan</h3>
-                <p class="text-[13px] text-slate-500 leading-relaxed">Catatan cuaca, foto, & aktivitas fisik dari Pengawas.</p>
-            </div>
-        </div>
-        <div class="absolute bottom-6 right-6 opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
-            <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-            </div>
-        </div>
-    </a>
+                        <span
+                            class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                            {{ $proyek->pegawais->count() }}
+                        </span>
 
-    <!-- WIDGET 2: LAPORAN KEUANGAN -->
-    <a href="{{ route('proyek.keuangan', $proyek->id) }}" class="group block bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-300 relative overflow-hidden">
-        <div class="absolute -right-6 -top-6 w-24 h-24 bg-emerald-50 rounded-full group-hover:scale-150 transition-transform duration-500 -z-10"></div>
-        <div class="flex items-start gap-4">
-            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                </svg>
-            </div>
-            <div>
-                <h3 class="text-base font-bold text-slate-900 mb-1 group-hover:text-emerald-700 transition-colors">Laporan Keuangan</h3>
-                <p class="text-[13px] text-slate-500 leading-relaxed">Kelola dana termin dan pantau pengeluaran lapangan.</p>
-            </div>
-        </div>
-        <div class="absolute bottom-6 right-6 opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
-            <div class="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-            </div>
-        </div>
-    </a>
-
-    <!-- WIDGET 3: AI FORECASTING -->
-    <div class="bg-gradient-to-br from-[#0c2340] to-[#1a365d] rounded-2xl shadow-sm border border-slate-700 p-6 flex flex-col justify-center items-center relative overflow-hidden group">
-        <div class="absolute -right-4 -top-4 w-20 h-20 bg-amber-400/10 rounded-full blur-2xl group-hover:bg-amber-400/20 transition-all duration-500"></div>
-        <svg class="w-8 h-8 text-amber-400 mb-3 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-        </svg>
-        <h3 class="text-sm font-bold text-amber-400 text-center relative z-10 mb-1">AI Forecasting (SES)</h3>
-        <p class="text-[11px] text-slate-400 text-center relative z-10 font-medium">Prediksi Stok Material (Segera Hadir)</p>
-    </div>
-</div>
-
-<!-- ============================================== -->
-<!-- TAB NAVIGASI: TIM PROYEK vs ITEM PEKERJAAN -->
-<!-- ============================================== -->
-<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 lg:p-8 mb-6">
-
-    <div class="mb-6 border-b border-slate-200">
-        <nav class="flex space-x-8" aria-label="Tabs">
-            <button id="tab-btn-tim" onclick="switchTabProyek('tim')" class="inline-flex items-center py-4 px-1 border-b-2 border-amber-500 font-semibold text-sm text-slate-900 transition-colors focus:outline-none">
-                <svg class="w-5 h-5 mr-2 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                </svg>
-                Tim Proyek Lapangan
-                <span class="ml-2 bg-slate-100 text-slate-700 py-0.5 px-2 rounded-full text-xs font-medium">{{ $proyek->pegawais->count() }}</span>
-            </button>
-            <button id="tab-btn-pekerjaan" onclick="switchTabProyek('pekerjaan')" class="inline-flex items-center py-4 px-1 border-b-2 border-transparent font-medium text-sm text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors focus:outline-none">
-                <svg class="w-5 h-5 mr-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                </svg>
-                Item Pekerjaan & Bobot
-                <span class="ml-2 bg-slate-100 text-slate-600 py-0.5 px-2 rounded-full text-xs font-medium">{{ $proyek->itemPekerjaans->count() }}</span>
-            </button>
-        </nav>
-    </div>
-
-    <!-- ============================================== -->
-    <!-- KONTEN TAB 1: TIM PROYEK LAPANGAN -->
-    <!-- ============================================== -->
-    <div id="tab-content-tim" class="block">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-4">
-            <div class="relative flex-1 w-full sm:max-w-xs">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                </div>
-                <input type="text" id="searchTimProyek" onkeyup="filterTimProyek()" placeholder="Cari nama pekerja..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all">
-            </div>
-            @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
-            <button type="button" onclick="toggleModal('modalTambahPekerja')" class="inline-flex items-center justify-center px-4 py-2 bg-slate-800 text-white text-sm font-medium rounded-lg hover:bg-[#0c2340] transition-colors shadow-sm shrink-0 w-full sm:w-auto">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-                Tugaskan Pekerja
-            </button>
-            @endif
-        </div>
-
-        @if($proyek->pegawais->count() > 0)
-        <div id="timProyekContainer">
-            @foreach($pekerjaPerJabatan as $namaJabatan => $daftarPekerja)
-            <div class="mb-6 last:mb-0 kelompok-jabatan">
-                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center">
-                    <span class="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                    {{ $namaJabatan }}
-                    <span class="ml-2 text-slate-400 font-normal normal-case">({{ $daftarPekerja->count() }} orang)</span>
-                </h4>
-                <div class="overflow-x-auto rounded-lg border border-slate-100">
-                    <table class="w-full text-left border-collapse min-w-[500px]">
-                        <tbody class="text-sm text-slate-700 divide-y divide-slate-100">
-                            @foreach($daftarPekerja as $pekerja)
-                            <tr class="hover:bg-slate-50 transition-colors row-pekerja">
-                                <td class="py-3 px-4 font-medium text-slate-800 cell-nama-pekerja">{{ $pekerja->nama }}</td>
-                                <td class="py-3 px-4 text-slate-500">{{ $pekerja->no_telp ?? '-' }}</td>
-                                @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
-                                <td class="py-3 px-4 text-right">
-                                    <form action="{{ route('proyek.remove', ['proyek' => $proyek->id, 'pegawai' => $pekerja->id]) }}" method="POST" class="inline" onsubmit="return confirm('Keluarkan {{ addslashes($pekerja->nama) }} dari proyek ini?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Copot Penugasan" aria-label="Copot {{ $pekerja->nama }}">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"></path>
-                                            </svg>
-                                        </button>
-                                    </form>
-                                </td>
-                                @endif
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            @endforeach
-        </div>
-        <p id="pesanTimKosong" class="hidden text-center text-sm text-slate-400 py-8">Tidak ada pekerja yang cocok dengan pencarian.</p>
-        @else
-        <div class="text-center py-12 border border-dashed border-slate-200 rounded-xl">
-            <p class="text-slate-500 font-medium">Belum ada pekerja yang ditugaskan ke proyek ini.</p>
-        </div>
-        @endif
-    </div>
-
-    <!-- ============================================== -->
-    <!-- KONTEN TAB 2: ITEM PEKERJAAN & BOBOT -->
-    <!-- ============================================== -->
-    <div id="tab-content-pekerjaan" class="hidden">
-        @php
-        $totalBobot = $proyek->itemPekerjaans->sum('bobot');
-        $sisaBobot = max(0, 100 - $totalBobot);
-        $sisaBobotFormated = number_format($sisaBobot, 2, '.', '');
-        @endphp
-
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <p class="text-xs text-slate-500">Daftarkan tahapan pekerjaan proyek. Total bobot harus mencapai 100%.</p>
-            <div class="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 shrink-0">
-                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Terisi:</span>
-                <span class="text-xl font-bold {{ $totalBobot >= 100 ? 'text-emerald-600' : 'text-slate-800' }}">
-                    {{ number_format($totalBobot, 2, ',', '.') }}<span class="text-sm font-medium text-slate-400">/100%</span>
-                </span>
-            </div>
-        </div>
-
-        @if($totalBobot < 100 && auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
-        <form action="{{ route('item-pekerjaan.store', $proyek->id) }}" method="POST" class="mb-8">
-            @csrf
-            <div id="dynamic-form-container" class="space-y-4">
-                <div class="flex flex-col sm:flex-row gap-4 items-end row-item group">
-                    <div class="flex-1 w-full">
-                        <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Nama Pekerjaan</label>
-                        <input type="text" name="nama_pekerjaan[]" placeholder="Contoh: Pekerjaan Atap..." required class="w-full bg-white rounded-lg border border-slate-300 shadow-sm py-2.5 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all">
-                    </div>
-                    <div class="w-full sm:w-36">
-                        <label class="block text-[11px] font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Bobot (%)</label>
-                        <input type="number" name="bobot[]" step="0.01" min="0.01" max="{{ $sisaBobotFormated }}" placeholder="Maks: {{ number_format($sisaBobot, 2, ',', '.') }}" required class="w-full bg-white rounded-lg border border-slate-300 shadow-sm py-2.5 px-3 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all">
-                    </div>
-                    <button type="button" onclick="hapusBaris(this)" class="p-2.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-colors hidden btn-remove" title="Hapus Baris" aria-label="Hapus baris item">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
                     </button>
-                </div>
-            </div>
-            <div class="flex gap-3 mt-6 pt-6 border-t border-slate-100">
-                <button type="button" onclick="tambahBaris()" class="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors hover:text-slate-900">+ Tambah Baris</button>
-                <button type="submit" class="px-6 py-2.5 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors shadow-sm">Simpan Data</button>
-            </div>
-        </form>
-        @elseif($totalBobot >= 100)
-        <div class="bg-emerald-50 text-emerald-800 p-4 rounded-xl border border-emerald-200 text-sm font-medium mb-8 flex items-center">
-            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center mr-3 shrink-0">
-                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-            </div>
-            Total bobot telah mencapai 100%. Daftar pekerjaan siap dilaksanakan.
-        </div>
-        @endif
 
-        <div class="overflow-x-auto rounded-xl border border-slate-200">
-            <table class="w-full text-left text-sm min-w-[500px]">
-                <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-600 font-semibold">
-                    <tr>
-                        <th class="px-5 py-3.5">Nama Tahapan</th>
-                        <th class="px-5 py-3.5 text-center">Bobot (%)</th>
-                        <th class="px-5 py-3.5 text-center">Progres Fisik (%)</th>
-                        @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
-                        <th class="px-5 py-3.5 text-right">Aksi</th>
-                        @endif
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-slate-700">
-                    @forelse($proyek->itemPekerjaans as $item)
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-5 py-4 font-medium text-slate-800">{{ $item->nama_pekerjaan }}</td>
-                        <td class="px-5 py-4 text-center">
-                            <span class="inline-flex items-center justify-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold text-xs">
-                                {{ number_format($item->bobot, 2, ',', '.') }}%
-                            </span>
-                        </td>
-                        <td class="px-5 py-4 text-center">
-                            <span class="font-bold {{ $item->progres_sekarang == 100 ? 'text-emerald-600' : 'text-blue-600' }}">
-                                {{ number_format($item->progres_sekarang, 2, ',', '.') }}%
-                            </span>
-                        </td>
-                        @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
-                        <td class="px-5 py-4 text-right">
-                            <form action="{{ route('item-pekerjaan.destroy', $item->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Hapus tahapan pekerjaan {{ addslashes($item->nama_pekerjaan) }}?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Hapus Item" aria-label="Hapus {{ $item->nama_pekerjaan }}">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                </button>
-                            </form>
-                        </td>
-                        @endif
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="{{ auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']) ? 4 : 3 }}" class="px-5 py-12 text-center">
-                            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-50 mb-3">
-                                <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+
+                    {{-- Pekerjaan --}}
+                    <button
+                        id="tab-btn-pekerjaan"
+                        onclick="switchTabProyek('pekerjaan')"
+                        class="inline-flex items-center gap-2 border-b-2 border-transparent px-1 py-3.5 text-[12px] font-medium text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-800 focus:outline-none">
+
+                        <svg
+                            class="h-4 w-4 text-slate-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.7"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        </svg>
+
+                        Item Pekerjaan & Bobot
+
+                        <span
+                            class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                            {{ $proyek->itemPekerjaans->count() }}
+                        </span>
+
+                    </button>
+
+                </nav>
+
+            </div>
+
+
+            {{-- =================================================
+                TAB TIM PROYEK
+            ================================================== --}}
+            <div
+                id="tab-content-tim"
+                class="block py-6">
+
+                <div class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+                    <div>
+
+                        <h2
+                            class="text-[15px] font-semibold tracking-[-0.01em] text-slate-900">
+                            Tim Proyek Lapangan
+                        </h2>
+
+                        <p class="mt-1 text-[11px] text-slate-500">
+                            Daftar pekerja yang ditugaskan pada proyek ini.
+                        </p>
+
+                    </div>
+
+
+                    <div class="flex flex-col gap-3 sm:flex-row">
+
+                        {{-- Search --}}
+                        <div class="relative w-full sm:w-64">
+
+                            <div
+                                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                                <svg
+                                    class="h-3.5 w-3.5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="1.7"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                             </div>
-                            <p class="text-slate-500 font-medium">Belum ada item pekerjaan.</p>
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+
+                            <input
+                                type="text"
+                                id="searchTimProyek"
+                                onkeyup="filterTimProyek()"
+                                placeholder="Cari nama pekerja..."
+                                class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-4 text-[11px] text-slate-800 placeholder-slate-400 outline-none transition-all focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-500/10" />
+
+                        </div>
+
+
+                        @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
+
+                        <button
+                            type="button"
+                            onclick="toggleModal('modalTambahPekerja')"
+                            class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-[11px] font-semibold text-white shadow-sm transition-colors hover:bg-blue-950">
+
+                            <svg
+                                class="mr-2 h-3.5 w-3.5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.7"
+                                    d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+
+                            Tugaskan Pekerja
+
+                        </button>
+
+                        @endif
+
+                    </div>
+
+                </div>
+
+
+                @if($proyek->pegawais->count() > 0)
+
+                <div id="timProyekContainer">
+
+                    @foreach($pekerjaPerJabatan as $namaJabatan => $daftarPekerja)
+
+                    <div class="kelompok-jabatan mb-6 last:mb-0">
+
+                        <div class="mb-2.5 flex items-center">
+
+                            <span
+                                class="mr-2 h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+
+                            <h4
+                                class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                {{ $namaJabatan }}
+                            </h4>
+
+                            <span
+                                class="ml-2 text-[10px] text-slate-400">
+                                ({{ $daftarPekerja->count() }} orang)
+                            </span>
+
+                        </div>
+
+
+                        <div class="overflow-x-auto rounded-xl border border-slate-200">
+
+                            <table class="w-full min-w-[500px] text-left">
+
+                                <tbody
+                                    class="divide-y divide-slate-100 text-[12px] text-slate-700">
+
+                                    @foreach($daftarPekerja as $pekerja)
+
+                                    <tr
+                                        class="row-pekerja transition-colors hover:bg-slate-50">
+
+                                        <td
+                                            class="cell-nama-pekerja px-4 py-3.5 font-medium text-slate-800">
+                                            {{ $pekerja->nama }}
+                                        </td>
+
+                                        <td
+                                            class="px-4 py-3.5 text-slate-500">
+                                            {{ $pekerja->no_telp ?? '-' }}
+                                        </td>
+
+                                        @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
+
+                                        <td
+                                            class="px-4 py-3.5 text-right">
+
+                                            <form
+                                                action="{{ route('proyek.remove', ['proyek' => $proyek->id, 'pegawai' => $pekerja->id]) }}"
+                                                method="POST"
+                                                class="inline"
+                                                onsubmit="return confirm('Keluarkan {{ addslashes($pekerja->nama) }} dari proyek ini?');">
+
+                                                @csrf
+                                                @method('DELETE')
+
+                                                <button
+                                                    type="submit"
+                                                    class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                                                    title="Copot Penugasan"
+                                                    aria-label="Copot {{ $pekerja->nama }}">
+
+                                                    <svg
+                                                        class="h-3.5 w-3.5"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path
+                                                            stroke-linecap="round"
+                                                            stroke-linejoin="round"
+                                                            stroke-width="1.7"
+                                                            d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+                                                    </svg>
+
+                                                </button>
+
+                                            </form>
+
+                                        </td>
+
+                                        @endif
+
+                                    </tr>
+
+                                    @endforeach
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                    @endforeach
+
+                </div>
+
+
+                <p
+                    id="pesanTimKosong"
+                    class="hidden py-8 text-center text-[12px] text-slate-400">
+                    Tidak ada pekerja yang cocok dengan pencarian.
+                </p>
+
+                @else
+
+                <div
+                    class="rounded-xl border border-dashed border-slate-200 py-12 text-center">
+
+                    <div
+                        class="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-slate-50">
+                        <svg
+                            class="h-5 w-5 text-slate-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.5"
+                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857" />
+                        </svg>
+                    </div>
+
+                    <p class="text-[12px] font-medium text-slate-500">
+                        Belum ada pekerja yang ditugaskan.
+                    </p>
+
+                </div>
+
+                @endif
+
+            </div>
+
+
+            {{-- =================================================
+                TAB ITEM PEKERJAAN
+            ================================================== --}}
+            <div
+                id="tab-content-pekerjaan"
+                class="hidden py-6">
+
+                @php
+                $totalBobot = $proyek->itemPekerjaans->sum('bobot');
+                $sisaBobot = max(0, 100 - $totalBobot);
+                $sisaBobotFormated = number_format($sisaBobot, 2, '.', '');
+                @endphp
+
+
+                <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+                    <div>
+
+                        <h2
+                            class="text-[15px] font-semibold tracking-[-0.01em] text-slate-900">
+                            Item Pekerjaan & Bobot
+                        </h2>
+
+                        <p class="mt-1 text-[11px] text-slate-500">
+                            Total bobot pekerjaan harus mencapai 100%.
+                        </p>
+
+                    </div>
+
+
+                    <div
+                        class="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+
+                        <span
+                            class="text-[9px] font-medium uppercase tracking-[0.12em] text-slate-500">
+                            Total Terisi
+                        </span>
+
+                        <span
+                            class="text-[20px] font-semibold tracking-[-0.03em] {{ $totalBobot >= 100 ? 'text-emerald-600' : 'text-slate-800' }}">
+                            {{ number_format($totalBobot, 2, ',', '.') }}
+
+                            <span class="text-[11px] font-medium text-slate-400">
+                                /100%
+                            </span>
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                @if($totalBobot < 100 && auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
+
+                    <form
+                        action="{{ route('item-pekerjaan.store', $proyek->id) }}"
+                        method="POST"
+                        class="mb-8">
+
+                        @csrf
+
+                        <div
+                            id="dynamic-form-container"
+                            class="space-y-4">
+
+                            <div
+                                class="row-item group flex flex-col items-end gap-4 sm:flex-row">
+
+                                <div class="w-full flex-1">
+
+                                    <label
+                                        class="mb-1.5 block text-[9px] font-medium uppercase tracking-[0.12em] text-slate-500">
+                                        Nama Pekerjaan
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        name="nama_pekerjaan[]"
+                                        placeholder="Contoh: Pekerjaan Atap..."
+                                        required
+                                        class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[12px] text-slate-800 shadow-sm outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10">
+
+                                </div>
+
+
+                                <div class="w-full sm:w-36">
+
+                                    <label
+                                        class="mb-1.5 block text-[9px] font-medium uppercase tracking-[0.12em] text-slate-500">
+                                        Bobot (%)
+                                    </label>
+
+                                    <input
+                                        type="number"
+                                        name="bobot[]"
+                                        step="0.01"
+                                        min="0.01"
+                                        max="{{ $sisaBobotFormated }}"
+                                        placeholder="Maks: {{ number_format($sisaBobot, 2, ',', '.') }}"
+                                        required
+                                        class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[12px] text-slate-800 shadow-sm outline-none transition-all focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10">
+
+                                </div>
+
+
+                                <button
+                                    type="button"
+                                    onclick="hapusBaris(this)"
+                                    class="btn-remove hidden rounded-xl border border-transparent p-2.5 text-slate-400 transition-colors hover:border-rose-100 hover:bg-rose-50 hover:text-rose-500"
+                                    title="Hapus Baris">
+
+                                    <svg
+                                        class="h-4 w-4"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="1.7"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 01-1 1v3M4 7h16" />
+                                    </svg>
+
+                                </button>
+
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            class="mt-6 flex gap-3 border-t border-slate-100 pt-6">
+
+                            <button
+                                type="button"
+                                onclick="tambahBaris()"
+                                class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[11px] font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900">
+                                + Tambah Baris
+                            </button>
+
+                            <button
+                                type="submit"
+                                class="rounded-xl bg-slate-900 px-5 py-2.5 text-[11px] font-semibold text-white shadow-sm transition-colors hover:bg-blue-950">
+                                Simpan Data
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                    @elseif($totalBobot >= 100)
+
+                    <div
+                        class="mb-8 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-[11px] font-medium text-emerald-800">
+
+                        <div
+                            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                            <svg
+                                class="h-4 w-4 text-emerald-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.7"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+
+                        Total bobot telah mencapai 100%. Daftar pekerjaan siap dilaksanakan.
+
+                    </div>
+
+                    @endif
+
+
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+
+                        <table class="w-full min-w-[500px] text-left">
+
+                            <thead
+                                class="border-b border-slate-200 bg-slate-50">
+
+                                <tr>
+
+                                    <th
+                                        class="px-5 py-3.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                        Nama Tahapan
+                                    </th>
+
+                                    <th
+                                        class="px-5 py-3.5 text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                        Bobot (%)
+                                    </th>
+
+                                    <th
+                                        class="px-5 py-3.5 text-center text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                        Progres Fisik (%)
+                                    </th>
+
+                                    @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
+
+                                    <th
+                                        class="px-5 py-3.5 text-right text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                                        Aksi
+                                    </th>
+
+                                    @endif
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody class="divide-y divide-slate-100">
+
+                                @forelse($proyek->itemPekerjaans as $item)
+
+                                <tr class="transition-colors hover:bg-slate-50">
+
+                                    <td
+                                        class="px-5 py-3.5 text-[12px] font-medium text-slate-800">
+                                        {{ $item->nama_pekerjaan }}
+                                    </td>
+
+                                    <td class="px-5 py-3.5 text-center">
+
+                                        <span
+                                            class="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-medium text-slate-700">
+                                            {{ number_format($item->bobot, 2, ',', '.') }}%
+                                        </span>
+
+                                    </td>
+
+                                    <td class="px-5 py-3.5 text-center">
+
+                                        <span
+                                            class="text-[12px] font-semibold {{ $item->progres_sekarang == 100 ? 'text-emerald-600' : 'text-blue-600' }}">
+                                            {{ number_format($item->progres_sekarang, 2, ',', '.') }}%
+                                        </span>
+
+                                    </td>
+
+                                    @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
+
+                                    <td class="px-5 py-3.5 text-right">
+
+                                        <form
+                                            action="{{ route('item-pekerjaan.destroy', $item->id) }}"
+                                            method="POST"
+                                            class="inline-block"
+                                            onsubmit="return confirm('Hapus tahapan pekerjaan {{ addslashes($item->nama_pekerjaan) }}?')">
+
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button
+                                                type="submit"
+                                                class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+                                                title="Hapus Item">
+
+                                                <svg
+                                                    class="h-3.5 w-3.5"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        stroke-width="1.7"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 01-1-1h-4a1 1 0 01-1 1v3M4 7h16" />
+                                                </svg>
+
+                                            </button>
+
+                                        </form>
+
+                                    </td>
+
+                                    @endif
+
+                                </tr>
+
+                                @empty
+
+                                <tr>
+
+                                    <td
+                                        colspan="{{ auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']) ? 4 : 3 }}"
+                                        class="px-5 py-12 text-center">
+
+                                        <div
+                                            class="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-slate-50">
+                                            <svg
+                                                class="h-5 w-5 text-slate-400"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="1.5"
+                                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                                            </svg>
+                                        </div>
+
+                                        <p class="text-[12px] font-medium text-slate-500">
+                                            Belum ada item pekerjaan.
+                                        </p>
+
+                                    </td>
+
+                                </tr>
+
+                                @endforelse
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+            </div>
+
         </div>
-    </div>
+
+    </section>
 
 </div>
 
-<!-- ============================================== -->
-<!-- AREA MODAL (ADMIN & SUPER ADMIN) -->
-<!-- ============================================== -->
+
+{{-- =========================================================
+    MODAL AREA
+========================================================= --}}
 @if(auth()->check() && in_array(auth()->user()->role, ['admin', 'super_admin']))
 
-<!-- 1. MODAL EDIT PROYEK -->
-<div id="modalEditProyek" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm overflow-y-auto w-full h-full flex items-center justify-center p-4"
-    role="dialog" aria-modal="true" aria-labelledby="modalEditProyekTitle"
+{{-- =====================================================
+        MODAL EDIT PROYEK
+    ====================================================== --}}
+<div
+    id="modalEditProyek"
+    class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modalEditProyekTitle"
     onclick="closeModalOutside(event, 'modalEditProyek')">
-    <div class="relative mx-auto p-6 w-full max-w-xl shadow-2xl rounded-2xl bg-white border border-slate-100 my-8">
-        <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-            <h3 id="modalEditProyekTitle" class="text-lg font-bold text-slate-800">Edit Data Proyek</h3>
-            <button type="button" onclick="toggleModal('modalEditProyek')" class="text-slate-400 hover:text-slate-600 p-1 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+
+    <div
+        class="relative my-8 w-full max-w-xl rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl">
+
+        <div
+            class="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
+
+            <h3
+                id="modalEditProyekTitle"
+                class="text-[16px] font-semibold tracking-[-0.01em] text-slate-800">
+                Edit Data Proyek
+            </h3>
+
+            <button
+                type="button"
+                onclick="toggleModal('modalEditProyek')"
+                class="rounded-lg bg-slate-50 p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600">
+
+                <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.7"
+                        d="M6 18L18 6M6 6l12 12" />
                 </svg>
+
             </button>
+
         </div>
 
-        <form action="{{ route('proyek.update', $proyek->id) }}" method="POST" enctype="multipart/form-data">
+
+        <form
+            action="{{ route('proyek.update', $proyek->id) }}"
+            method="POST"
+            enctype="multipart/form-data">
+
             @csrf
             @method('PUT')
 
-            <!-- Upload Gambar Proyek -->
+
+            {{-- Upload --}}
             <div class="mb-5">
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">Ganti Gambar Proyek <span class="text-xs font-normal text-slate-400 lowercase">(biarkan kosong jika tidak diganti)</span></label>
-                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer" onclick="document.getElementById('file-upload-edit').click()">
+
+                <label
+                    class="mb-2 block text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                    Ganti Gambar Proyek
+
+                    <span
+                        class="text-[9px] font-normal normal-case tracking-normal text-slate-400">
+                        (kosongkan jika tidak diganti)
+                    </span>
+                </label>
+
+                <div
+                    class="mt-1 flex cursor-pointer justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 pb-6 pt-5 transition-colors hover:bg-slate-100"
+                    onclick="document.getElementById('file-upload-edit').click()">
+
                     <div class="space-y-1 text-center">
-                        <svg class="mx-auto h-10 w-10 text-slate-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+                        <svg
+                            class="mx-auto h-9 w-9 text-slate-400"
+                            stroke="currentColor"
+                            fill="none"
+                            viewBox="0 0 48 48">
+                            <path
+                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round" />
                         </svg>
-                        <div class="flex text-sm text-slate-600 justify-center">
-                            <label for="file-upload-edit" class="relative cursor-pointer rounded-md font-medium text-blue-600 hover:text-blue-500">
+
+                        <div class="flex justify-center text-[11px] text-slate-600">
+
+                            <label
+                                for="file-upload-edit"
+                                class="relative cursor-pointer rounded-md font-medium text-blue-600 hover:text-blue-500">
                                 <span>Pilih Gambar Baru</span>
-                                <input id="file-upload-edit" name="gambar" type="file" class="sr-only" accept="image/png, image/jpeg, image/jpg" onchange="previewTextEdit(this)">
+
+                                <input
+                                    id="file-upload-edit"
+                                    name="gambar"
+                                    type="file"
+                                    class="sr-only"
+                                    accept="image/png, image/jpeg, image/jpg"
+                                    onchange="previewTextEdit(this)" />
+
                             </label>
+
                         </div>
-                        <p class="text-xs text-slate-500" id="file-name-edit">Format JPG/PNG (Maks 2MB)</p>
+
+                        <p
+                            class="text-[10px] text-slate-500"
+                            id="file-name-edit">
+                            Format JPG/PNG (Maks 2MB)
+                        </p>
+
                     </div>
+
                 </div>
+
             </div>
 
+
+            {{-- Nama --}}
             <div class="mb-4">
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Nama Proyek</label>
-                <input type="text" name="nama_proyek" value="{{ $proyek->nama_proyek }}" required class="w-full rounded-lg border-slate-300 py-2.5 px-3 text-sm text-slate-900 focus:ring-blue-500 focus:border-blue-500 outline-none ring-1 ring-inset ring-slate-300">
+
+                <label
+                    class="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                    Nama Proyek
+                </label>
+
+                <input
+                    type="text"
+                    name="nama_proyek"
+                    value="{{ $proyek->nama_proyek }}"
+                    required
+                    class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-[12px] text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+
             </div>
 
+
+            {{-- Lokasi --}}
             <div class="mb-4">
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Lokasi Proyek</label>
-                <input type="text" name="lokasi" value="{{ $proyek->lokasi }}" required class="w-full rounded-lg border-slate-300 py-2.5 px-3 text-sm text-slate-900 focus:ring-blue-500 focus:border-blue-500 outline-none ring-1 ring-inset ring-slate-300">
+
+                <label
+                    class="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                    Lokasi Proyek
+                </label>
+
+                <input
+                    type="text"
+                    name="lokasi"
+                    value="{{ $proyek->lokasi }}"
+                    required
+                    class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-[12px] text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+
+            {{-- Client --}}
+            <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Nama Pemilik / Klien</label>
-                    <input type="text" name="nama_pemilik" value="{{ $proyek->nama_pemilik }}" class="w-full rounded-lg border-slate-300 py-2.5 px-3 text-sm text-slate-900 focus:ring-blue-500 focus:border-blue-500 outline-none ring-1 ring-inset ring-slate-300">
+
+                    <label
+                        class="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                        Nama Pemilik / Klien
+                    </label>
+
+                    <input
+                        type="text"
+                        name="nama_pemilik"
+                        value="{{ $proyek->nama_pemilik }}"
+                        class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-[12px] text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+
                 </div>
+
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Kontak Pemilik</label>
-                    <input type="text" name="kontak_pemilik" value="{{ $proyek->kontak_pemilik }}" class="w-full rounded-lg border-slate-300 py-2.5 px-3 text-sm text-slate-900 focus:ring-blue-500 focus:border-blue-500 outline-none ring-1 ring-inset ring-slate-300">
+
+                    <label
+                        class="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                        Kontak Pemilik
+                    </label>
+
+                    <input
+                        type="text"
+                        name="kontak_pemilik"
+                        value="{{ $proyek->kontak_pemilik }}"
+                        class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-[12px] text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+
                 </div>
+
             </div>
 
+
+            {{-- Anggaran --}}
             <div class="mb-4">
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Anggaran / RAB (Rp)</label>
-                <input type="number" name="anggaran" value="{{ $proyek->anggaran }}" min="0" required class="w-full rounded-lg border-slate-300 py-2.5 px-3 text-sm text-slate-900 focus:ring-blue-500 focus:border-blue-500 outline-none ring-1 ring-inset ring-slate-300">
+
+                <label
+                    class="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                    Anggaran / RAB (Rp)
+                </label>
+
+                <input
+                    type="number"
+                    name="anggaran"
+                    value="{{ $proyek->anggaran }}"
+                    min="0"
+                    required
+                    class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-[12px] text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-4">
+
+            {{-- Dates --}}
+            <div class="mb-4 grid grid-cols-2 gap-4">
+
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Tanggal Mulai</label>
-                    <input type="date" name="tanggal_mulai" value="{{ $proyek->tanggal_mulai }}" required class="w-full rounded-lg border-slate-300 py-2.5 px-3 text-sm text-slate-900 focus:ring-blue-500 focus:border-blue-500 outline-none ring-1 ring-inset ring-slate-300">
+
+                    <label
+                        class="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                        Tanggal Mulai
+                    </label>
+
+                    <input
+                        type="date"
+                        name="tanggal_mulai"
+                        value="{{ $proyek->tanggal_mulai }}"
+                        required
+                        class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-[12px] text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+
                 </div>
+
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Estimasi Selesai</label>
-                    <input type="date" name="estimasi_selesai" value="{{ $proyek->estimasi_selesai }}" class="w-full rounded-lg border-slate-300 py-2.5 px-3 text-sm text-slate-900 focus:ring-blue-500 focus:border-blue-500 outline-none ring-1 ring-inset ring-slate-300">
+
+                    <label
+                        class="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                        Estimasi Selesai
+                    </label>
+
+                    <input
+                        type="date"
+                        name="estimasi_selesai"
+                        value="{{ $proyek->estimasi_selesai }}"
+                        class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-[12px] text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+
                 </div>
+
             </div>
 
+
+            {{-- Status --}}
             <div class="mb-6">
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Status Pengerjaan</label>
-                <select name="status" required class="w-full rounded-lg border-slate-300 py-2.5 px-3 text-sm text-slate-900 focus:ring-blue-500 focus:border-blue-500 outline-none ring-1 ring-inset ring-slate-300 bg-white">
-                    <option value="Akan Dimulai" {{ $proyek->status == 'Akan Dimulai' ? 'selected' : '' }}>Akan Dimulai</option>
-                    <option value="Berjalan" {{ $proyek->status == 'Berjalan' ? 'selected' : '' }}>Berjalan</option>
-                    <option value="Ditunda" {{ $proyek->status == 'Ditunda' ? 'selected' : '' }}>Ditunda</option>
-                    <option value="Selesai" {{ $proyek->status == 'Selesai' ? 'selected' : '' }}>Selesai</option>
+
+                <label
+                    class="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                    Status Pengerjaan
+                </label>
+
+                <select
+                    name="status"
+                    required
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-[12px] text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+
+                    <option value="Akan Dimulai" {{ $proyek->status == 'Akan Dimulai' ? 'selected' : '' }}>
+                        Akan Dimulai
+                    </option>
+
+                    <option value="Berjalan" {{ $proyek->status == 'Berjalan' ? 'selected' : '' }}>
+                        Berjalan
+                    </option>
+
+                    <option value="Ditunda" {{ $proyek->status == 'Ditunda' ? 'selected' : '' }}>
+                        Ditunda
+                    </option>
+
+                    <option value="Selesai" {{ $proyek->status == 'Selesai' ? 'selected' : '' }}>
+                        Selesai
+                    </option>
+
                 </select>
+
             </div>
 
-            <div class="flex justify-end space-x-3 pt-5 border-t border-slate-100">
-                <button type="button" onclick="toggleModal('modalEditProyek')" class="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-colors">Batal</button>
-                <button type="submit" class="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 transition-colors shadow-md">Simpan Perubahan</button>
+
+            {{-- Actions --}}
+            <div
+                class="flex justify-end gap-3 border-t border-slate-100 pt-5">
+
+                <button
+                    type="button"
+                    onclick="toggleModal('modalEditProyek')"
+                    class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+                    Batal
+                </button>
+
+                <button
+                    type="submit"
+                    class="rounded-xl bg-blue-600 px-5 py-2.5 text-[11px] font-semibold text-white shadow-sm transition-colors hover:bg-blue-700">
+                    Simpan Perubahan
+                </button>
+
             </div>
+
         </form>
+
     </div>
+
 </div>
 
-<!-- 2. MODAL TUGASKAN PEKERJA -->
-<div id="modalTambahPekerja" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm overflow-y-auto w-full h-full flex items-center justify-center p-4"
-    role="dialog" aria-modal="true" aria-labelledby="modalTambahPekerjaTitle"
+
+{{-- =====================================================
+        MODAL TUGASKAN PEKERJA
+    ====================================================== --}}
+<div
+    id="modalTambahPekerja"
+    class="fixed inset-0 z-50 hidden h-full w-full items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-sm"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modalTambahPekerjaTitle"
     onclick="closeModalOutside(event, 'modalTambahPekerja')">
-    <div class="relative mx-auto p-6 w-full max-w-md shadow-2xl rounded-2xl bg-white border border-slate-100 my-8">
-        <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-            <h3 id="modalTambahPekerjaTitle" class="text-lg font-bold text-slate-800">Tugaskan Pekerja</h3>
-            <button type="button" onclick="toggleModal('modalTambahPekerja')" class="text-slate-400 hover:text-slate-600 p-1 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+
+    <div
+        class="relative my-8 w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl">
+
+        <div
+            class="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
+
+            <h3
+                id="modalTambahPekerjaTitle"
+                class="text-[16px] font-semibold tracking-[-0.01em] text-slate-800">
+                Tugaskan Pekerja
+            </h3>
+
+            <button
+                type="button"
+                onclick="toggleModal('modalTambahPekerja')"
+                class="rounded-lg bg-slate-50 p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600">
+
+                <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.7"
+                        d="M6 18L18 6M6 6l12 12" />
                 </svg>
+
             </button>
+
         </div>
-        <form action="{{ route('proyek.assign', $proyek->id) }}" method="POST">
+
+
+        <form
+            action="{{ route('proyek.assign', $proyek->id) }}"
+            method="POST">
+
             @csrf
+
             <div class="mb-6">
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Pilih Pekerja <span class="text-xs font-normal text-slate-400 lowercase">(belum ditugaskan)</span></label>
-                <select name="pegawai_id" required class="w-full rounded-lg border-slate-300 py-2.5 px-3 text-sm text-slate-900 focus:ring-amber-500 focus:border-amber-500 outline-none ring-1 ring-inset ring-slate-300 bg-white">
-                    <option value="" disabled selected>-- Pilih Pekerja --</option>
+
+                <label
+                    class="mb-1.5 block text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-600">
+                    Pilih Pekerja
+
+                    <span
+                        class="text-[9px] font-normal normal-case tracking-normal text-slate-400">
+                        (belum ditugaskan)
+                    </span>
+                </label>
+
+                <select
+                    name="pegawai_id"
+                    required
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-[12px] text-slate-900 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
+
+                    <option
+                        value=""
+                        disabled
+                        selected>
+                        -- Pilih Pekerja --
+                    </option>
+
                     @foreach ($pegawaiTersedia as $tersedia)
-                    <option value="{{ $tersedia->id }}">{{ $tersedia->nama }} ({{ $tersedia->jabatan->nama_jabatan ?? 'Staf' }})</option>
+
+                    <option value="{{ $tersedia->id }}">
+                        {{ $tersedia->nama }}
+                        ({{ $tersedia->jabatan->nama_jabatan ?? 'Staf' }})
+                    </option>
+
                     @endforeach
+
                 </select>
+
             </div>
-            <div class="flex justify-end space-x-3 pt-5 border-t border-slate-100">
-                <button type="button" onclick="toggleModal('modalTambahPekerja')" class="px-5 py-2.5 bg-white border border-slate-300 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-50 transition-colors">Batal</button>
-                <button type="submit" class="px-5 py-2.5 bg-slate-800 text-white text-sm font-semibold rounded-xl hover:bg-[#0c2340] transition-colors shadow-md">Tugaskan ke Tim</button>
+
+
+            <div
+                class="flex justify-end gap-3 border-t border-slate-100 pt-5">
+
+                <button
+                    type="button"
+                    onclick="toggleModal('modalTambahPekerja')"
+                    class="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-[11px] font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+                    Batal
+                </button>
+
+                <button
+                    type="submit"
+                    class="rounded-xl bg-slate-900 px-5 py-2.5 text-[11px] font-semibold text-white shadow-sm transition-colors hover:bg-blue-950">
+                    Tugaskan ke Tim
+                </button>
+
             </div>
+
         </form>
+
     </div>
+
 </div>
 
 @endif

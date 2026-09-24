@@ -52,8 +52,8 @@
         <p class="mt-0.5 text-center text-[10px] leading-4 text-slate-500">
             Sistem Administrasi Kegiatan Proyek
         </p>
-        <p class="mt-0.5 text-center text-[10px] leading-4 text-amber-400">
-            @zsaymade
-        </p>
+        <!-- <p class="mt-0.5 text-center text-[10px] leading-4 text-amber-400">
+            mirahberlian.id
+        </p> -->
     </div>
 </aside>

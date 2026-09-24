@@ -28,11 +28,11 @@
             <div class="relative z-10 w-full px-12 pb-16 xl:px-20 xl:pb-20">
                 <div class="mb-5 flex items-center gap-3">
                     <span class="h-px w-10 bg-white/60"></span>
-                    <span class="text-sm font-medium tracking-[0.2em] text-white/80 uppercase">Sistem Informasi</span>
+                    <span class="text-sm font-medium tracking-[0.2em] text-white/80 uppercase">Sistem Informasi Absensi dan Manajemen Keuangan</span>
                 </div>
 
                 <h1 class="max-w-xl text-4xl font-bold leading-tight tracking-tight text-white xl:text-5xl">
-                    Selamat Datang di SAKP
+                    Selamat Datang
                 </h1>
 
                 <p class="mt-5 max-w-xl text-base leading-7 text-white/75 xl:text-lg">

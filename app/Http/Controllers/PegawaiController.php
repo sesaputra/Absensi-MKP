@@ -13,17 +13,46 @@ use Illuminate\Support\Facades\DB;
 class PegawaiController extends Controller
 {
     public function index()
-    {
-        $pegawais = Pegawai::with(['user', 'jabatan'])->latest()->get();
+{
+    $pegawais = Pegawai::with(['user', 'jabatan'])
+        ->latest()
+        ->get();
 
-        $jabatans = Jabatan::latest()->get();
+    $jabatans = Jabatan::latest()->get();
 
-        return view('Admin.manajemen-pegawai', compact('pegawais', 'jabatans'));
-    }
+    // Statistik Pegawai
+    $totalPegawai = $pegawais->count();
+
+    $pegawaiAktif = $pegawais
+        ->where('status', 'aktif')
+        ->count();
+
+    $pegawaiNonaktif = $pegawais
+        ->where('status', 'nonaktif')
+        ->count();
+
+    // Statistik Jabatan
+    $totalJabatan = $jabatans->count();
+
+    return view(
+        'Admin.manajemen-pegawai',
+        compact(
+            'pegawais',
+            'jabatans',
+            'totalPegawai',
+            'pegawaiAktif',
+            'pegawaiNonaktif',
+            'totalJabatan'
+        )
+    );
+}
 
     public function store(Request $request)
     {
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) {
+        if (
+            !Auth::check() ||
+            !in_array(Auth::user()->role, ['admin', 'super_admin'])
+        ) {
             abort(403, 'Anda tidak memiliki hak akses.');
         }
 
@@ -31,26 +60,28 @@ class PegawaiController extends Controller
             'nama' => 'required|string|max:255',
             'jabatan_id' => 'required|exists:jabatans,id',
             'no_telp' => 'required|string|max:20',
+            'status' => 'required|in:aktif,nonaktif',
         ]);
 
         $jabatan = Jabatan::findOrFail($request->jabatan_id);
 
-        $namaJabatan = strtolower(trim($jabatan->nama_jabatan));
-
-        $butuhLogin = in_array($namaJabatan, ['pengawas', 'mandor']);
-
-        if ($butuhLogin) {
-            $request->validate([
-                'email' => 'required|email|unique:users,email',
-                'password' => 'required|string|min:6',
-            ]);
-        }
-
-        DB::transaction(function () use ($request, $butuhLogin) {
+        DB::transaction(function () use ($request, $jabatan) {
 
             $userId = null;
 
-            if ($butuhLogin) {
+            /*
+            |--------------------------------------------------------------------------
+            | CEK APAKAH JABATAN BOLEH LOGIN
+            |--------------------------------------------------------------------------
+            */
+
+            if ($jabatan->can_login) {
+
+                $request->validate([
+                    'email' => 'required|email|unique:users,email',
+                    'password' => 'required|string|min:6',
+                ]);
+
                 $user = User::create([
                     'name' => $request->nama,
                     'email' => $request->email,
@@ -61,93 +92,176 @@ class PegawaiController extends Controller
                 $userId = $user->id;
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | SIMPAN PEGAWAI
+            |--------------------------------------------------------------------------
+            */
+
             Pegawai::create([
                 'user_id' => $userId,
                 'nama' => $request->nama,
                 'jabatan_id' => $request->jabatan_id,
                 'no_telp' => $request->no_telp,
+                'status' => $request->status,
             ]);
         });
 
-        return back()->with('success', 'Pegawai berhasil ditambahkan!');
+        return back()->with(
+            'success',
+            'Pegawai berhasil ditambahkan!'
+        );
     }
-    
+
     public function update(Request $request, Pegawai $pegawai)
     {
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) abort(403);
+        if (
+            !Auth::check() ||
+            !in_array(Auth::user()->role, ['admin', 'super_admin'])
+        ) {
+            abort(403, 'Anda tidak memiliki hak akses.');
+        }
 
-        // 1. UBAH VALIDASI
         $request->validate([
             'nama' => 'required|string|max:255',
             'jabatan_id' => 'required|exists:jabatans,id',
             'no_telp' => 'required|string|max:20',
+            'status' => 'required|in:aktif,nonaktif',
         ]);
 
-        // 2. CEK NAMA JABATAN DARI DATABASE
-        $jabatan = Jabatan::find($request->jabatan_id);
-        $namaJabatan = strtolower($jabatan->nama_jabatan);
+        $jabatan = Jabatan::findOrFail($request->jabatan_id);
 
-        // 3. UBAH LOGIKA PENGECEKAN ROLE
-        $butuhLogin = in_array($namaJabatan, ['pengawas', 'mandor']);
+        DB::transaction(function () use ($request, $pegawai, $jabatan) {
 
-        if ($butuhLogin) {
-            if ($pegawai->user_id) {
-                // Skenario A: Dia sudah punya akun, kita update datanya
-                $request->validate([
-                    'email' => 'required|email|unique:users,email,' . $pegawai->user_id,
-                    'password' => 'nullable|min:6'
-                ]);
+            /*
+            |--------------------------------------------------------------------------
+            | JABATAN MEMBUTUHKAN AKUN LOGIN
+            |--------------------------------------------------------------------------
+            */
 
-                $user = User::find($pegawai->user_id);
-                $user->name = $request->nama;
-                $user->email = $request->email;
-                if ($request->filled('password')) {
-                    $user->password = Hash::make($request->password);
+            if ($jabatan->can_login) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | PEGAWAI SUDAH MEMILIKI AKUN
+                |--------------------------------------------------------------------------
+                */
+
+                if ($pegawai->user_id) {
+
+                    $request->validate([
+                        'email' => 'required|email|unique:users,email,' . $pegawai->user_id,
+                        'password' => 'nullable|string|min:6',
+                    ]);
+
+                    $user = User::findOrFail($pegawai->user_id);
+
+                    $user->name = $request->nama;
+                    $user->email = $request->email;
+
+                    if ($request->filled('password')) {
+                        $user->password = Hash::make(
+                            $request->password
+                        );
+                    }
+
+                    $user->save();
                 }
-                $user->save();
-            } else {
-                // Skenario B: Dia Tukang yang naik jabatan jadi Mandor (Buatkan akun baru)
-                $request->validate([
-                    'email' => 'required|email|unique:users,email',
-                    'password' => 'required|min:6'
-                ]);
 
-                $user = User::create([
-                    'name' => $request->nama,
-                    'email' => $request->email,
-                    'password' => Hash::make($request->password),
-                    'role' => 'pengawas',
-                ]);
-                $pegawai->user_id = $user->id;
+                /*
+                |--------------------------------------------------------------------------
+                | PEGAWAI BELUM MEMILIKI AKUN
+                |--------------------------------------------------------------------------
+                */ else {
+
+                    $request->validate([
+                        'email' => 'required|email|unique:users,email',
+                        'password' => 'required|string|min:6',
+                    ]);
+
+                    $user = User::create([
+                        'name' => $request->nama,
+                        'email' => $request->email,
+                        'password' => Hash::make($request->password),
+                        'role' => 'pengawas',
+                    ]);
+
+                    $pegawai->user_id = $user->id;
+                }
             }
-        } else {
-            // Skenario C: Dia turun jabatan jadi Tukang. Hapus akun loginnya jika ada.
-            if ($pegawai->user_id) {
-                User::find($pegawai->user_id)->delete();
-                $pegawai->user_id = null;
+
+            /*
+            |--------------------------------------------------------------------------
+            | JABATAN TIDAK MEMBUTUHKAN AKUN LOGIN
+            |--------------------------------------------------------------------------
+            |
+            | PENTING:
+            | Kita TIDAK menghapus akun lama secara otomatis.
+            |
+            */ else {
+
+                /*
+                 * Untuk sementara user_id tetap dipertahankan.
+                 *
+                 * Alasannya:
+                 * - histori tetap aman
+                 * - akun tidak hilang
+                 * - nanti kita bisa mengatur status akses secara terpisah
+                 */
             }
-        }
 
-        // 4. UPDATE DENGAN JABATAN_ID
-        $pegawai->update([
-            'user_id' => $pegawai->user_id,
-            'nama' => $request->nama,
-            'jabatan_id' => $request->jabatan_id,
-            'no_telp' => $request->no_telp,
-        ]);
+            /*
+            |--------------------------------------------------------------------------
+            | UPDATE DATA PEGAWAI
+            |--------------------------------------------------------------------------
+            */
 
-        return back()->with('success', 'Data pegawai berhasil diperbarui!');
+            $pegawai->update([
+                'user_id' => $pegawai->user_id,
+                'nama' => $request->nama,
+                'jabatan_id' => $request->jabatan_id,
+                'no_telp' => $request->no_telp,
+                'status' => $request->status,
+            ]);
+        });
+
+        return back()->with(
+            'success',
+            'Data pegawai berhasil diperbarui!'
+        );
     }
 
     public function destroy(Pegawai $pegawai)
     {
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) {
+        if (
+            !Auth::check() ||
+            !in_array(Auth::user()->role, ['admin', 'super_admin'])
+        ) {
             abort(403, 'Anda tidak memiliki hak akses.');
         }
-        if ($pegawai->user_id) {
-            User::find($pegawai->user_id)?->delete();
-        }
-        $pegawai->delete();
-        return back()->with('success', 'Pegawai berhasil dihapus!');
+
+        DB::transaction(function () use ($pegawai) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | HAPUS AKUN USER
+            |--------------------------------------------------------------------------
+            |
+            | Penghapusan akun hanya dilakukan ketika pegawai
+            | benar-benar dihapus.
+            |
+            */
+
+            if ($pegawai->user_id) {
+                User::find($pegawai->user_id)?->delete();
+            }
+
+            $pegawai->delete();
+        });
+
+        return back()->with(
+            'success',
+            'Pegawai berhasil dihapus!'
+        );
     }
 }

@@ -8,7 +8,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Pegawai extends Model
 {
-    protected $fillable = ['user_id', 'nama', 'jabatan_id', 'no_telp'];
+    protected $fillable = [
+        'nama',
+        'no_telp',
+        'jabatan_id',
+        'user_id',
+        'status',
+    ];
+
+    protected $casts = [
+        'status' => 'string',
+    ];
 
     public function user(): BelongsTo
     {
