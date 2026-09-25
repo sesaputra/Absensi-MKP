@@ -1,14 +1,19 @@
-# Production override - use: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-# For GHCR deploys: TAG=sha-production docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && up -d
+# Production / VPS policy overlay.
+# Use: docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml up -d
+# For GHCR deploys: TAG=<sha|staging|production> ... pull && up -d
+# NOTE: dev bind-mounts live in docker-compose.override.yml, which is NOT loaded
+# when -f flags are given - so VPS runs pure image + named volumes.
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
     image: ghcr.io/sesaputra/absensi-mkp:${TAG:-latest}
-    # Remove dev bind-mounts - use built image artifacts only
+    # Writable Laravel dirs as named volumes (union with base = same set, explicit).
     volumes:
       - storage_data:/var/www/storage
+      - cache_data:/var/www/bootstrap/cache
+      - public_data:/var/www/public
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
@@ -16,19 +21,22 @@ services:
 
   webserver:
     volumes:
-      # In prod only mount built public assets (read-only) - no source bind-mount
-      - ./public:/var/www/public:ro
+      # Built public assets shared from app image (read-only). No source bind-mount.
+      - public_data:/var/www/public:ro
       - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
       # Share storage for user uploads if you use public/storage
       - storage_data:/var/www/storage:ro
     restart: always
 
   db:
-    # Do not expose MySQL to host in prod
+    # Do not expose MySQL to host in prod - Caddy/app network only
     ports: []
     restart: always
-    # Consider adding: deploy.resources.limits
 
 volumes:
   storage_data:
+    driver: local
+  cache_data:
+    driver: local
+  public_data:
     driver: local

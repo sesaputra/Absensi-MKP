@@ -1,4 +1,6 @@
 #!/bin/sh
+# Runs as ROOT (no USER directive in Dockerfile) so volume ownership can be
+# repaired. Privileges are dropped via gosu before handing off to php-fpm.
 set -e
 
 # Wait for DB if DB_HOST is set (default to db service)
@@ -17,43 +19,66 @@ try {
 done
 echo "Database is reachable."
 
-# Ensure .env exists and APP_KEY is set
+# Ensure .env exists (compose provides it via env_file; the file copy is a fallback)
 if [ ! -f /var/www/.env ]; then
-  echo "No .env found, copying .env.example..."
+  echo "No .env file found, copying .env.example as fallback..."
   cp /var/www/.env.example /var/www/.env || true
 fi
 
-# Fix permissions at runtime (handles bind-mount overrides)
-mkdir -p /var/www/storage/logs /var/www/storage/framework/{sessions,views,cache} /var/www/bootstrap/cache
-chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true
-chmod -R 775 /var/www/storage /var/www/bootstrap/cache 2>/dev/null || true
+# Repair ownership of Laravel writable dirs (named volumes seed from image,
+# but first-boot or foreign-owned volumes need normalizing). Must run as root.
+mkdir -p /var/www/storage/logs /var/www/storage/framework/sessions \
+  /var/www/storage/framework/views /var/www/storage/framework/cache \
+  /var/www/bootstrap/cache
+chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
-# Generate APP_KEY if empty
-if ! grep -q "^APP_KEY=.*[A-Za-z0-9]" /var/www/.env 2>/dev/null; then
-  echo "Generating APP_KEY..."
-  php /var/www/artisan key:generate --force || true
+# Fail fast with a clear message instead of a cryptic "view does not exist" 500
+if [ ! -w /var/www/bootstrap/cache ]; then
+  echo "FATAL: /var/www/bootstrap/cache is not writable by www-data. Check volume ownership." >&2
+  exit 1
+fi
+if [ ! -w /var/www/storage ]; then
+  echo "FATAL: /var/www/storage is not writable by www-data. Check volume ownership." >&2
+  exit 1
 fi
 
-# Run migrations and optimizations only if DB is accessible
-if php /var/www/artisan migrate:status >/dev/null 2>&1; then
+# Clear stale framework caches FIRST - before any artisan command that boots the app.
+# A broken config.php would otherwise kill migrate:status and every later step.
+echo "Clearing framework caches..."
+gosu www-data php /var/www/artisan config:clear || true
+gosu www-data php /var/www/artisan route:clear || true
+gosu www-data php /var/www/artisan view:clear || true
+gosu www-data php /var/www/artisan event:clear || true
+
+# Generate APP_KEY if empty (writes into /var/www/.env when present)
+if ! grep -q "^APP_KEY=.*[A-Za-z0-9]" /var/www/.env 2>/dev/null; then
+  echo "Generating APP_KEY..."
+  gosu www-data php /var/www/artisan key:generate --force || {
+    echo "FATAL: could not generate APP_KEY. Set APP_KEY in .env (php artisan key:generate --show)." >&2
+    exit 1
+  }
+fi
+
+# Run migrations only if DB is accessible
+if gosu www-data php /var/www/artisan migrate:status >/dev/null 2>&1; then
   echo "Running migrations..."
-  php /var/www/artisan migrate --force || echo "Migrations failed (will retry next restart)"
+  gosu www-data php /var/www/artisan migrate --force || echo "Migrations failed (will retry next restart)"
 else
   echo "Skipping migrations - DB not fully ready or not configured"
 fi
 
-echo "Clearing and caching config..."
-php /var/www/artisan config:clear || true
-php /var/www/artisan route:clear || true
-php /var/www/artisan view:clear || true
-# Only cache in production
+# Cache config for production
 if [ "$APP_ENV" = "production" ]; then
-  php /var/www/artisan config:cache || true
-  php /var/www/artisan route:cache || true
-  php /var/www/artisan view:cache || true
+  echo "Caching config for production..."
+  gosu www-data php /var/www/artisan config:cache || true
+  gosu www-data php /var/www/artisan route:cache || true
+  gosu www-data php /var/www/artisan view:cache || true
+  gosu www-data php /var/www/artisan event:cache || true
 fi
 
-# Storage link
-php /var/www/artisan storage:link || true
+# Storage link (public/storage for user uploads)
+gosu www-data php /var/www/artisan storage:link || true
 
-exec "$@"
+# Drop privileges: php-fpm runs as www-data from here on
+exec gosu www-data "$@"
