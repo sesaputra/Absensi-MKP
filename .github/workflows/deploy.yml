@@ -161,13 +161,14 @@ jobs:
             sleep 10
           done
           # Migrations - always force in deploy, fail deploy if migration fails
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan migrate --force --no-interaction
+          # Run as www-data so generated files (config cache, compiled views) stay worker-writable
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T -u www-data app php artisan migrate --force --no-interaction
           # Caches - staging should mimic prod (set APP_ENV=production in staging .env if you want caching)
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan config:cache || true
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan route:cache || true
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan view:cache || true
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan storage:link || true
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan queue:restart || true
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T -u www-data app php artisan config:cache || true
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T -u www-data app php artisan route:cache || true
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T -u www-data app php artisan view:cache || true
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T -u www-data app php artisan storage:link || true
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T -u www-data app php artisan queue:restart || true
 
       - name: Healthcheck via webserver
         run: |
@@ -269,12 +270,13 @@ jobs:
             echo "waiting for app healthy... $i/6"
             sleep 10
           done
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan migrate --force --no-interaction
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan config:cache
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan route:cache
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan view:cache
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan storage:link || true
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan queue:restart || true
+          # Run as www-data so generated files stay worker-writable
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T -u www-data app php artisan migrate --force --no-interaction
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T -u www-data app php artisan config:cache
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T -u www-data app php artisan route:cache
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T -u www-data app php artisan view:cache
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T -u www-data app php artisan storage:link || true
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T -u www-data app php artisan queue:restart || true
 
       - name: Healthcheck
         run: |

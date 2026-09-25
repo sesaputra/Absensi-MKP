@@ -51,8 +51,9 @@ gosu www-data php /var/www/artisan route:clear || true
 gosu www-data php /var/www/artisan view:clear || true
 gosu www-data php /var/www/artisan event:clear || true
 
-# Generate APP_KEY if empty (writes into /var/www/.env when present)
-if ! grep -q "^APP_KEY=.*[A-Za-z0-9]" /var/www/.env 2>/dev/null; then
+# Generate APP_KEY if missing from BOTH environment and file.
+# (Compose injects the real key via env_file; the file copy is only a fallback.)
+if [ -z "${APP_KEY:-}" ] && ! grep -q "^APP_KEY=.*[A-Za-z0-9]" /var/www/.env 2>/dev/null; then
   echo "Generating APP_KEY..."
   gosu www-data php /var/www/artisan key:generate --force || {
     echo "FATAL: could not generate APP_KEY. Set APP_KEY in .env (php artisan key:generate --show)." >&2
@@ -80,5 +81,8 @@ fi
 # Storage link (public/storage for user uploads)
 gosu www-data php /var/www/artisan storage:link || true
 
-# Drop privileges: php-fpm runs as www-data from here on
-exec gosu www-data "$@"
+# Hand off. The FPM master stays root on purpose: it must re-open
+# error_log (/proc/self/fd/2, a root-owned pipe) and bind :9000.
+# Workers run as www-data per the pool config. All artisan work above
+# already ran via gosu www-data, so generated files are correctly owned.
+exec "$@"
