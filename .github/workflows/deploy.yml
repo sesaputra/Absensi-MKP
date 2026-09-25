@@ -102,9 +102,14 @@ jobs:
           printf '%s' "$ENV_FILE" > .env
           chmod 600 .env
           echo ".env written ($(wc -l < .env) lines)"
-          grep -q "^APP_KEY=base64" .env || { echo "::error::APP_KEY missing or not base64"; exit 1; }
+          grep -Eq "^APP_KEY=base64:[A-Za-z0-9+/=]{40,}$" .env || { echo "::error::APP_KEY must be a real base64 key (php artisan key:generate --show)"; exit 1; }
+          if grep -qiE "PASTE|CHANGE_ME" .env; then echo "::error::.env still contains placeholder values"; exit 1; fi
           grep -q "^DB_HOST=db" .env || echo "::warning::DB_HOST should be 'db' for docker network"
           grep -q "^DB_CONNECTION=mysql" .env || echo "::warning::DB_CONNECTION should be mysql"
+          # MySQL image refuses MYSQL_USER=root; if Laravel uses root, passwords must match root
+          if grep -q "^DB_USERNAME=root" .env; then
+            echo "::warning::DB_USERNAME=root - ensure DB_PASSWORD equals DB_ROOT_PASSWORD (or DB_ROOT_PASSWORD unset) so Laravel can auth as root"
+          fi
           # Do not cat .env - secret already masked in logs
 
       - name: Log in to GHCR (for pull)
@@ -137,6 +142,15 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml up -d --remove-orphans --wait
           docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml ps
 
+      - name: Normalize runtime dir ownership (container root)
+        run: |
+          set -e
+          # Entrypoint repairs this too, but container-root chown is the bulletproof
+          # path when a volume was first created foreign-owned. No VPS access needed.
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T -u root app \
+            sh -c 'chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/public && chmod -R 775 /var/www/storage /var/www/bootstrap/cache'
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan optimize:clear || true
+
       - name: Run Laravel optimizations (best practice)
         run: |
           set -e
@@ -158,9 +172,8 @@ jobs:
       - name: Healthcheck via webserver
         run: |
           set -e
-          # Hit via webserver inside network
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T webserver wget --no-verbose --tries=1 --spider http://127.0.0.1/ || \
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T webserver wget --spider http://localhost/
+          # /up is Laravel's health route: proves boot works without needing DB tables
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T webserver wget --no-verbose --tries=1 --spider http://127.0.0.1/up
           echo "Healthcheck passed"
 
       - name: Prune old images (keep last 2)
@@ -205,9 +218,14 @@ jobs:
           printf '%s' "$ENV_FILE" > .env
           chmod 600 .env
           echo ".env written ($(wc -l < .env) lines)"
-          grep -q "^APP_KEY=base64" .env || { echo "::error::APP_KEY missing"; exit 1; }
+          grep -Eq "^APP_KEY=base64:[A-Za-z0-9+/=]{40,}$" .env || { echo "::error::APP_KEY must be a real base64 key (php artisan key:generate --show)"; exit 1; }
+          if grep -qiE "PASTE|CHANGE_ME" .env; then echo "::error::.env still contains placeholder values"; exit 1; fi
           grep -q "^DB_HOST=db" .env || echo "::warning::DB_HOST should be db"
           grep -q "^DB_CONNECTION=mysql" .env || echo "::warning::DB_CONNECTION should be mysql"
+          # MySQL image refuses MYSQL_USER=root; if Laravel uses root, passwords must match root
+          if grep -q "^DB_USERNAME=root" .env; then
+            echo "::warning::DB_USERNAME=root - ensure DB_PASSWORD equals DB_ROOT_PASSWORD (or DB_ROOT_PASSWORD unset) so Laravel can auth as root"
+          fi
           # Enforce production checks
           if grep -q "^APP_DEBUG=true" .env; then echo "::warning::APP_DEBUG should be false in production"; fi
           # Do not cat .env - secret already masked in logs
@@ -236,6 +254,13 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml up -d --remove-orphans --wait
           docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml ps
 
+      - name: Normalize runtime dir ownership (container root)
+        run: |
+          set -e
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T -u root app \
+            sh -c 'chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache /var/www/public && chmod -R 775 /var/www/storage /var/www/bootstrap/cache'
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T app php artisan optimize:clear || true
+
       - name: Run Laravel optimizations
         run: |
           set -e
@@ -253,7 +278,8 @@ jobs:
 
       - name: Healthcheck
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T webserver wget --no-verbose --tries=1 --spider http://127.0.0.1/
+          # /up is Laravel's health route: proves boot works without needing DB tables
+          docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.caddy.yml exec -T webserver wget --no-verbose --tries=1 --spider http://127.0.0.1/up
 
       - name: Prune
         run: |
