@@ -24,7 +24,7 @@ class LaporanHarianController extends Controller
             ->where('tanggal', $tanggalHariIni)
             ->first();
 
-        return view('Pengawas.laporan-harian', compact('proyek', 'laporanHariIni', 'tanggalHariIni'));
+        return view('pengawas.laporan-harian', compact('proyek', 'laporanHariIni', 'tanggalHariIni'));
     }
     
     // 2. Menyimpan Laporan Teks dan Mengubah Progres Slider (Smart Change-Log)
@@ -126,6 +126,6 @@ class LaporanHarianController extends Controller
             ->orderBy('tanggal', 'desc')
             ->get();
 
-        return view('Admin.riwayat-laporan-proyek', compact('proyek', 'riwayatLaporan', 'availableMonths', 'selectedMonth'));
+        return view('admin.riwayat-laporan-proyek', compact('proyek', 'riwayatLaporan', 'availableMonths', 'selectedMonth'));
     }
 }

@@ -15,7 +15,7 @@ class ProyekController extends Controller
     public function index()
     {
         $proyeks = Proyek::latest()->get();
-        return view('Admin.manajemen-proyek', compact('proyeks'));
+        return view('admin.manajemen-proyek', compact('proyeks'));
     }
 
     public function store(Request $request)
@@ -104,7 +104,7 @@ class ProyekController extends Controller
             $query->whereIn('status', ['Akan Dimulai', 'Berjalan']);
         })->with('jabatan')->get();
 
-        return view('Admin.detail-manajemen-proyek', compact('proyek', 'pekerjaPerJabatan', 'pegawaiTersedia'));
+        return view('admin.detail-manajemen-proyek', compact('proyek', 'pekerjaPerJabatan', 'pegawaiTersedia'));
     }
     // 2. Menugaskan pekerja ke proyek (Plotting)
     public function assignPegawai(Request $request, Proyek $proyek)

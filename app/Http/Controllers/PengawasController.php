@@ -24,6 +24,6 @@ class PengawasController extends Controller
             ->whereIn('status', ['Akan Dimulai', 'Berjalan'])
             ->get();
 
-        return view('Pengawas.dashboard', compact('pegawai', 'proyekDitugaskan'));
+        return view('pengawas.dashboard', compact('pegawai', 'proyekDitugaskan'));
     }
 }

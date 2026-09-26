@@ -18,7 +18,7 @@ class PegawaiController extends Controller
 
         $jabatans = Jabatan::latest()->get();
 
-        return view('Admin.manajemen-pegawai', compact('pegawais', 'jabatans'));
+        return view('admin.manajemen-pegawai', compact('pegawais', 'jabatans'));
     }
 
     public function store(Request $request)

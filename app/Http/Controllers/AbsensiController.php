@@ -33,13 +33,13 @@ class AbsensiController extends Controller
 
         // JIKA BELUM ADA SAMA SEKALI -> Buka Form Pagi (Foto Briefing & Absen Hadir)
         if (!$laporanHariIni) {
-            return view('Pengawas.absensi', compact('proyek'));
+            return view('pengawas.absensi', compact('proyek'));
         }
 
         // JIKA SUDAH ABSEN PAGI -> Buka Form Sore (Foto Progres, Absen Durasi, Kegiatan & Slider)
         if ($laporanHariIni->status_validasi === 'Draft Pagi') {
             $dataAbsen = Absensi::where('laporan_harian_id', $laporanHariIni->id)->get()->keyBy('pegawai_id');
-            return view('Pengawas.absensi-sore', compact('proyek', 'laporanHariIni', 'dataAbsen'));
+            return view('pengawas.absensi-sore', compact('proyek', 'laporanHariIni', 'dataAbsen'));
         }
 
         // JIKA SUDAH ABSEN SORE
@@ -194,7 +194,7 @@ class AbsensiController extends Controller
             ->get();
 
         // Tidak perlu di-groupBy('proyek_id') lagi karena 1 Laporan sudah pasti mewakili 1 Proyek di hari itu
-        return view('Admin.manajemen-absensi', compact('draftLaporan', 'laporanValid', 'tanggalFilter'));
+        return view('admin.manajemen-absensi', compact('draftLaporan', 'laporanValid', 'tanggalFilter'));
     }
 
     public function setujuiAbsensi($proyek_id, $tanggal)
@@ -240,6 +240,6 @@ class AbsensiController extends Controller
             ->orderBy('tanggal', 'desc')
             ->get();
 
-        return view('Admin.detail-absensi-proyek', compact('proyek', 'riwayatLaporan', 'bulanFilter'));
+        return view('admin.detail-absensi-proyek', compact('proyek', 'riwayatLaporan', 'bulanFilter'));
     }
 }

@@ -76,7 +76,7 @@ class KeuanganProyekController extends Controller
         }
 
         // UBAH NAMA VARIABEL DI COMPACT
-        return view('Admin.laporan-keuangan', compact(
+        return view('admin.laporan-keuangan', compact(
             'proyek',
             'transaksi',
             'totalAnggaran',
@@ -292,7 +292,7 @@ class KeuanganProyekController extends Controller
             $rekapGaji[$key]['upah_bersih'] = $upahKotor - $potonganKasbon;
         }
 
-        return view('Admin.payroll', compact('proyek', 'rekapGaji', 'startDate', 'endDate'));
+        return view('admin.payroll', compact('proyek', 'rekapGaji', 'startDate', 'endDate'));
     }
 
 

@@ -12,7 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->alias([ 'role' => CheckRole::class, ]); 
+        $middleware->alias([ 'role' => CheckRole::class, ]);
+        // Caddy terminates TLS and proxies plain HTTP with X-Forwarded-Proto.
+        // Nginx is never exposed directly, so trusting the proxy is safe.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
