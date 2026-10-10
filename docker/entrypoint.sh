@@ -65,6 +65,11 @@ fi
 if gosu www-data php /var/www/artisan migrate:status >/dev/null 2>&1; then
   echo "Running migrations..."
   gosu www-data php /var/www/artisan migrate --force || echo "Migrations failed (will retry next restart)"
+  # Seed default accounts (super_admin/admin/pengawas + master jabatan).
+  # DatabaseSeeder is idempotent (firstOrCreate only) so this is safe on
+  # every boot: fresh DBs get login accounts, existing data is untouched.
+  echo "Seeding default accounts (idempotent)..."
+  gosu www-data php /var/www/artisan db:seed --force || echo "Seeding failed (will retry next restart)"
 else
   echo "Skipping migrations - DB not fully ready or not configured"
 fi
