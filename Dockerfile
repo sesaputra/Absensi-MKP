@@ -88,6 +88,16 @@ COPY --chown=www-data:www-data . /var/www
 COPY --chown=www-data:www-data --from=vendor /app/vendor /var/www/vendor
 COPY --chown=www-data:www-data --from=frontend /app/public/build /var/www/public/build
 
+# Pristine copy of image-managed public assets. The public_data named volume
+# shadows /var/www/public but is seeded from the image only once, so a stale
+# volume can hide newer build/js/images forever. The entrypoint re-syncs
+# these dirs from here on every boot (see docker/entrypoint.sh).
+# Intentionally strict (no `|| true`): a missing dir means the frontend
+# build broke and the image must fail loudly here.
+RUN mkdir -p /var/www/.public-dist \
+    && cp -r /var/www/public/build /var/www/public/js /var/www/public/images /var/www/.public-dist/ \
+    && chown -R www-data:www-data /var/www/.public-dist
+
 # Writable dirs only: entrypoint repairs named-volume ownership on every boot
 RUN rm -f /var/www/bootstrap/cache/*.php \
     && mkdir -p \

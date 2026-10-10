@@ -83,6 +83,24 @@ if [ "$APP_ENV" = "production" ]; then
   gosu www-data php /var/www/artisan event:cache || true
 fi
 
+# Self-heal image-managed public assets (build/js/images).
+# The public_data named volume is seeded from the image only ONCE, so a
+# volume created by an older deploy hides newer files forever (unstyled
+# pages, nginx 404s). Refresh these dirs from the pristine image copy so
+# the volume converges to the running image on every boot. Wholesale
+# replace (not merge) keeps hashed build files + manifest consistent.
+# Skipped automatically in local dev (source bind-mount hides .public-dist).
+if [ -d /var/www/.public-dist ]; then
+  echo "Syncing public assets from image (build/js/images)..."
+  for asset_dir in build js images; do
+    if [ -d "/var/www/.public-dist/${asset_dir}" ]; then
+      rm -rf "/var/www/public/${asset_dir}"
+      cp -r "/var/www/.public-dist/${asset_dir}" "/var/www/public/${asset_dir}" || echo "WARNING: could not sync public/${asset_dir}"
+    fi
+  done
+  chown -R www-data:www-data /var/www/public/build /var/www/public/js /var/www/public/images 2>/dev/null || true
+fi
+
 # Storage link (public/storage for user uploads)
 gosu www-data php /var/www/artisan storage:link || true
 

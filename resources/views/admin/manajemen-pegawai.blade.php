@@ -1372,5 +1372,7 @@ $isAdmin = auth()->check()
     );
 </script>
 
-<script src="{{ asset('js/manajemen-pegawai.js') }}?v={{ filemtime(public_path('js/manajemen-pegawai.js')) }}"></script>
+{{-- Static cache-buster: bump ?v= when the file changes. Deliberately NOT
+     filemtime(public_path(...)): a missing file must never 500 the page. --}}
+<script src="{{ asset('js/manajemen-pegawai.js') }}?v=1"></script>
 @endsection
