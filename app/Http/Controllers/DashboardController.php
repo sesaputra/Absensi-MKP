@@ -2,89 +2,250 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\KeuanganProyek;
 use App\Models\LaporanHarian;
-use App\Models\Proyek;
 use App\Models\Pegawai;
-use Illuminate\Http\Request;
+use App\Models\Proyek;
+use Illuminate\Contracts\View\View;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(): View
     {
-        $totalProyekSelesai = Proyek::where('status', 'Selesai')->count();
-        $totalProyekAktif = Proyek::where('status', 'Berjalan')->count();
-        $totalPegawai = Pegawai::count();
+        /*
+        |--------------------------------------------------------------------------
+        | Statistik Utama
+        |--------------------------------------------------------------------------
+        */
 
-        // Ambil 3 Proyek Teratas untuk dipantau
-        $proyekKesehatan = Proyek::where('status', 'Berjalan')
+        $totalProyekAktif = Proyek::query()
+            ->where('status', 'Berjalan')
+            ->count();
+
+        $totalProyekSelesai = Proyek::query()
+            ->where('status', 'Selesai')
+            ->count();
+
+        $totalPegawai = Pegawai::query()
+            ->where('status', 'aktif')
+            ->count();
+
+        $totalPendingValidasi = LaporanHarian::query()
+            ->where('status_validasi', 'Menunggu Persetujuan')
+            ->count();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Konfigurasi Kesehatan Keuangan
+        |--------------------------------------------------------------------------
+        */
+
+        $batasKasKritis = 5_000_000;
+        $batasKasMenipis = 20_000_000;
+
+        $batasRABWaspada = 75;
+        $batasRABKritis = 90;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Proyek Aktif + Ringkasan Keuangan
+        |--------------------------------------------------------------------------
+        |
+        | Pemasukan  = dana/termin yang benar-benar diterima.
+        | Pengeluaran = uang yang sudah dibelanjakan.
+        |
+        */
+
+        $proyekAktif = Proyek::query()
+            ->where('status', 'Berjalan')
+            ->withSum([
+                'keuangans as total_pemasukan' => function ($query) {
+                    $query->where('tipe', 'Pemasukan');
+                },
+            ], 'nominal')
+            ->withSum([
+                'keuangans as total_pengeluaran' => function ($query) {
+                    $query->where('tipe', 'Pengeluaran');
+                },
+            ], 'nominal')
             ->latest()
-            ->take(3)
             ->get();
 
-        // ==========================================
-        // MENGHITUNG KESEHATAN KAS SETIAP PROYEK
-        // ==========================================
-        foreach ($proyekKesehatan as $proyek) {
-            $totalPemasukan = KeuanganProyek::where('proyek_id', $proyek->id)
-                ->where('tipe', 'Pemasukan')->sum('nominal');
 
-            $totalPengeluaran = KeuanganProyek::where('proyek_id', $proyek->id)
-                ->where('tipe', 'Pengeluaran')->sum('nominal');
+        /*
+        |--------------------------------------------------------------------------
+        | Hitung Kondisi Keuangan Setiap Proyek
+        |--------------------------------------------------------------------------
+        */
+
+        foreach ($proyekAktif as $proyek) {
+
+            $totalPemasukan = (float) ($proyek->total_pemasukan ?? 0);
+
+            $totalPengeluaran = (float) ($proyek->total_pengeluaran ?? 0);
+
+            $anggaran = (float) ($proyek->anggaran ?? 0);
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Cash Flow
+            |--------------------------------------------------------------------------
+            */
 
             $kasTersedia = $totalPemasukan - $totalPengeluaran;
 
-            $persentaseTerpakai = 0;
-            if ($totalPemasukan > 0) {
-                $persentaseTerpakai = ($totalPengeluaran / $totalPemasukan) * 100;
-            }
 
-            $batasAmanNominal = 5000000; // Peringatan nyala jika kas di bawah Rp 5 Juta
+            /*
+            |--------------------------------------------------------------------------
+            | Penggunaan RAB
+            |--------------------------------------------------------------------------
+            */
 
-            if ($totalPemasukan == 0 && $totalPengeluaran == 0) {
-                $proyek->health_status = 'Belum Ada Dana';
-                $proyek->health_color = 'bg-slate-100 text-slate-700';
-                $proyek->health_dot = 'bg-slate-500';
-                $persentaseTerpakai = 0;
+            $persentasePengeluaran = $anggaran > 0
+                ? ($totalPengeluaran / $anggaran) * 100
+                : 0;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Health Status
+            |--------------------------------------------------------------------------
+            */
+
+            if ($anggaran <= 0) {
+
+                $healthStatus = 'Anggaran Belum Diatur';
+                $healthLevel = 'neutral';
             } elseif ($kasTersedia < 0) {
-                $proyek->health_status = 'Nombok!';
-                $proyek->health_color = 'bg-red-100 text-red-700';
-                $proyek->health_dot = 'bg-red-600';
-                $persentaseTerpakai = 100;
-            } elseif ($kasTersedia > 0 && $kasTersedia <= $batasAmanNominal) {
-                $proyek->health_status = 'Kritis (Kas < 5 Jt)';
-                $proyek->health_color = 'bg-red-100 text-red-700';
-                $proyek->health_dot = 'bg-red-500';
-            } elseif ($persentaseTerpakai >= 90) {
-                $proyek->health_status = 'Kritis (> 90%)';
-                $proyek->health_color = 'bg-red-100 text-red-700';
-                $proyek->health_dot = 'bg-red-500';
-            } elseif ($persentaseTerpakai >= 75) {
-                $proyek->health_status = 'Awas Menipis';
-                $proyek->health_color = 'bg-amber-100 text-amber-700';
-                $proyek->health_dot = 'bg-amber-500';
+
+                $healthStatus = 'Kas Negatif';
+                $healthLevel = 'danger';
+            } elseif ($kasTersedia <= $batasKasKritis) {
+
+                $healthStatus = 'Dana Kritis';
+                $healthLevel = 'danger';
+            } elseif ($kasTersedia <= $batasKasMenipis) {
+
+                $healthStatus = 'Dana Menipis';
+                $healthLevel = 'warning';
+            } elseif ($persentasePengeluaran >= $batasRABKritis) {
+
+                $healthStatus = 'Pengeluaran Kritis';
+                $healthLevel = 'danger';
+            } elseif ($persentasePengeluaran >= $batasRABWaspada) {
+
+                $healthStatus = 'Awas Menipis';
+                $healthLevel = 'warning';
             } else {
-                $proyek->health_status = 'Kas Aman';
-                $proyek->health_color = 'bg-green-100 text-green-700';
-                $proyek->health_dot = 'bg-green-500';
+
+                $healthStatus = 'Kas Aman';
+                $healthLevel = 'safe';
             }
 
-            // Simpan variabel untuk dikirim ke view
+
+            /*
+            |--------------------------------------------------------------------------
+            | Simpan Hasil Perhitungan
+            |--------------------------------------------------------------------------
+            */
+
             $proyek->kas_tersedia = $kasTersedia;
-            $proyek->persentase_terpakai = $persentaseTerpakai > 100 ? 100 : $persentaseTerpakai;
+
+            $proyek->persentase_pengeluaran = round(
+                $persentasePengeluaran,
+                1
+            );
+
+            $proyek->health_status = $healthStatus;
+
+            $proyek->health_level = $healthLevel;
         }
 
-        $pegawais = Pegawai::with('jabatan')->latest()->take(5)->get();
-        // Tambahkan di dalam DashboardController Anda (di fungsi index)
-        $totalPendingValidasi = LaporanHarian::where('status_validasi', 'Menunggu Persetujuan')->count();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Proyek yang Ditampilkan di Dashboard
+        |--------------------------------------------------------------------------
+        */
+
+        $proyekKesehatan = $proyekAktif->take(3);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Proyek Kritis
+        |--------------------------------------------------------------------------
+        */
+
+        $totalProyekKritis = $proyekAktif
+            ->where('health_level', 'danger')
+            ->count();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Proyek Dana Menipis
+        |--------------------------------------------------------------------------
+        */
+
+        $totalProyekDanaMenipis = $proyekAktif
+            ->where('health_level', 'warning')
+            ->count();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pegawai Terbaru
+        |--------------------------------------------------------------------------
+        */
+
+        $pegawais = Pegawai::query()
+            ->with('jabatan')
+            ->latest()
+            ->take(5)
+            ->get();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pegawai Aktif Tanpa Akun
+        |--------------------------------------------------------------------------
+        */
+
+        $totalPegawaiTanpaAkun = Pegawai::query()
+            ->where('status', 'aktif')
+            ->whereNull('user_id')
+            ->count();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Aktivitas Terbaru
+        |--------------------------------------------------------------------------
+        */
+
+        $recentActivities = collect();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Response
+        |--------------------------------------------------------------------------
+        */
 
         return view('admin.dashboard', compact(
-            'totalProyekSelesai',
             'totalProyekAktif',
+            'totalProyekSelesai',
             'totalPegawai',
+            'totalPendingValidasi',
+            'totalProyekKritis',
+            'totalProyekDanaMenipis',
+            'totalPegawaiTanpaAkun',
             'proyekKesehatan',
             'pegawais',
-            'totalPendingValidasi'
+            'recentActivities',
         ));
     }
 }

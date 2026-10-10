@@ -2,87 +2,226 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Proyek;
 use App\Models\ItemPekerjaan;
+use App\Models\Proyek;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ItemPekerjaanController extends Controller
 {
-    // 1. Menyimpan Item Pekerjaan Baru
-    public function store(Request $request, Proyek $proyek)
+    /**
+     * Memastikan user memiliki hak akses admin.
+     */
+    private function authorizeAdmin(): void
     {
-        // Pastikan hanya admin yang bisa menambah
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) abort(403);
-
-        // Validasi berbentuk Array karena inputan bisa lebih dari 1 baris
-        $request->validate([
-            'nama_pekerjaan' => 'required|array',
-            'nama_pekerjaan.*' => 'required|string|max:255',
-            'bobot' => 'required|array',
-            'bobot.*' => 'required|numeric|min:0.1|max:100',
-        ]);
-
-        // Hitung total bobot lama dan total bobot baru yang diinput
-        $totalBobotSaatIni = $proyek->itemPekerjaans()->sum('bobot');
-        $totalBobotBaru = array_sum($request->bobot);
-        $sisaBobot = 100 - $totalBobotSaatIni;
-
-        // Jika bobot lama + total bobot baru melebihi 100%
-        if (($totalBobotSaatIni + $totalBobotBaru) > 100) {
-            return back()->with('error', "Gagal! Total bobot melebihi batas. Sisa kuota bobot proyek adalah {$sisaBobot}%, namun Anda mencoba memasukkan total {$totalBobotBaru}%.");
-        }
-
-        // Jika aman, lakukan perulangan untuk menyimpan semua baris sekaligus
-        foreach ($request->nama_pekerjaan as $index => $nama) {
-            ItemPekerjaan::create([
-                'proyek_id' => $proyek->id,
-                'nama_pekerjaan' => $nama,
-                'bobot' => $request->bobot[$index],
-                'progres_sekarang' => 0, // Awal mulai pasti progresnya 0%
-            ]);
-        }
-
-        return back()->with('success', count($request->nama_pekerjaan) . ' Item pekerjaan berhasil ditambahkan!');
+        abort_unless(
+            Auth::check() &&
+                in_array(Auth::user()->role, ['admin', 'super_admin']),
+            403
+        );
     }
 
-    // 2. Mengubah Item Pekerjaan (Edit Bobot / Nama)
-    public function update(Request $request, ItemPekerjaan $itemPekerjaan)
-    {
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) abort(403);
+    /**
+     * Menyimpan item pekerjaan baru.
+     */
+    public function store(
+        Request $request,
+        Proyek $proyek
+    ): RedirectResponse {
+        $this->authorizeAdmin();
 
-        $request->validate([
-            'nama_pekerjaan' => 'required|string|max:255',
-            'bobot' => 'required|numeric|min:0.1|max:100',
+        $data = $request->validate([
+            'nama_pekerjaan' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+
+            'nama_pekerjaan.*' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'bobot' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+
+            'bobot.*' => [
+                'required',
+                'numeric',
+                'min:0.1',
+                'max:100',
+            ],
         ]);
 
-        // CEK KEAMANAN SAAT EDIT:
-        // Total bobot proyek, DIKURANGI bobot lama item ini, DITAMBAH bobot baru
-        $totalBobotLain = ItemPekerjaan::where('proyek_id', $itemPekerjaan->proyek_id)
-            ->where('id', '!=', $itemPekerjaan->id)
+        /*
+        |--------------------------------------------------------------------------
+        | Pastikan jumlah nama dan bobot sama
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            count($data['nama_pekerjaan']) !==
+            count($data['bobot'])
+        ) {
+            return back()->with(
+                'error',
+                'Data pekerjaan tidak valid. Jumlah pekerjaan dan bobot harus sama.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hitung total bobot
+        |--------------------------------------------------------------------------
+        */
+
+        $totalBobotSaatIni = (float) $proyek
+            ->itemPekerjaans()
             ->sum('bobot');
 
-        $sisaBobot = 100 - $totalBobotLain;
+        $totalBobotBaru = array_sum(
+            array_map('floatval', $data['bobot'])
+        );
 
-        if (($totalBobotLain + $request->bobot) > 100) {
-            return back()->with('error', "Gagal! Total bobot melebihi 100%. Maksimal bobot untuk item ini adalah {$sisaBobot}%.");
+        $totalBobotSetelahTambah =
+            $totalBobotSaatIni + $totalBobotBaru;
+
+        if ($totalBobotSetelahTambah > 100) {
+            $sisaBobot = max(
+                0,
+                100 - $totalBobotSaatIni
+            );
+
+            return back()->with(
+                'error',
+                'Gagal menambahkan item pekerjaan. '
+                    . 'Sisa bobot proyek hanya '
+                    . number_format($sisaBobot, 2)
+                    . '%, sedangkan total bobot yang dimasukkan adalah '
+                    . number_format($totalBobotBaru, 2)
+                    . '%.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Simpan seluruh item dalam satu transaksi
+        |--------------------------------------------------------------------------
+        */
+
+        DB::transaction(function () use ($data, $proyek) {
+            foreach ($data['nama_pekerjaan'] as $index => $nama) {
+                ItemPekerjaan::create([
+                    'proyek_id' => $proyek->id,
+                    'nama_pekerjaan' => trim($nama),
+                    'bobot' => $data['bobot'][$index],
+                    'progres_sekarang' => 0,
+                ]);
+            }
+        });
+
+        return back()->with(
+            'success',
+            count($data['nama_pekerjaan'])
+                . ' item pekerjaan berhasil ditambahkan.'
+        );
+    }
+
+    /**
+     * Memperbarui item pekerjaan.
+     */
+    public function update(
+        Request $request,
+        ItemPekerjaan $itemPekerjaan
+    ): RedirectResponse {
+        $this->authorizeAdmin();
+
+        $data = $request->validate([
+            'nama_pekerjaan' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'bobot' => [
+                'required',
+                'numeric',
+                'min:0.1',
+                'max:100',
+            ],
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hitung total bobot item lain
+        |--------------------------------------------------------------------------
+        */
+
+        $totalBobotLain = ItemPekerjaan::query()
+            ->where('proyek_id', $itemPekerjaan->proyek_id)
+            ->whereKeyNot($itemPekerjaan->id)
+            ->sum('bobot');
+
+        $bobotBaru = (float) $data['bobot'];
+
+        if (($totalBobotLain + $bobotBaru) > 100) {
+            $sisaBobot = max(
+                0,
+                100 - $totalBobotLain
+            );
+
+            return back()->with(
+                'error',
+                'Gagal memperbarui item pekerjaan. '
+                    . 'Bobot maksimal untuk item ini adalah '
+                    . number_format($sisaBobot, 2)
+                    . '%.'
+            );
         }
 
         $itemPekerjaan->update([
-            'nama_pekerjaan' => $request->nama_pekerjaan,
-            'bobot' => $request->bobot,
+            'nama_pekerjaan' => trim($data['nama_pekerjaan']),
+            'bobot' => $bobotBaru,
         ]);
 
-        return back()->with('success', 'Data item pekerjaan berhasil diperbarui!');
+        return back()->with(
+            'success',
+            'Data item pekerjaan berhasil diperbarui.'
+        );
     }
 
-    // 3. Menghapus Item Pekerjaan
-    public function destroy(ItemPekerjaan $itemPekerjaan)
-    {
-        if (!Auth::check() || !in_array(Auth::user()->role, ['admin', 'super_admin'])) abort(403);
+    /**
+     * Menghapus item pekerjaan.
+     */
+    public function destroy(
+        ItemPekerjaan $itemPekerjaan
+    ): RedirectResponse {
+        $this->authorizeAdmin();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Jangan hapus pekerjaan yang sudah memiliki progres
+        |--------------------------------------------------------------------------
+        */
+
+        if ((float) $itemPekerjaan->progres_sekarang > 0) {
+            return back()->with(
+                'error',
+                'Item pekerjaan tidak dapat dihapus karena sudah memiliki progres pekerjaan.'
+            );
+        }
 
         $itemPekerjaan->delete();
 
-        return back()->with('success', 'Item pekerjaan berhasil dihapus!');
+        return back()->with(
+            'success',
+            'Item pekerjaan berhasil dihapus.'
+        );
     }
 }

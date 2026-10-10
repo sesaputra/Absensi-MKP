@@ -4,31 +4,42 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class KeuanganProyek extends Model
 {
     use HasFactory;
 
-    // Definisikan nama tabel (jika berbeda dengan bentuk jamak bahasa inggris)
     protected $table = 'keuangan_proyeks';
 
-    // Kolom yang boleh diisi secara massal
     protected $fillable = [
         'proyek_id',
+        'kasbon_id',
         'tipe',
         'kategori',
         'nominal',
         'tanggal',
         'keterangan',
-        'bukti_file'
+        'bukti_file',
+    ];
+
+    protected $casts = [
+        'nominal' => 'decimal:2',
+        'tanggal' => 'date',
     ];
 
     /**
-     * Relasi Balik ke Proyek (One-to-Many Inverse)
-     * Setiap 1 transaksi keuangan, PASTI dimiliki oleh 1 Proyek.
+     * Transaksi ini milik proyek apa?
      */
-    public function proyek()
+    public function proyek(): BelongsTo
     {
-        return $this->belongsTo(Proyek::class, 'proyek_id');
+        return $this->belongsTo(Proyek::class);
+    }
+    public function kasbon(): BelongsTo
+    {
+        return $this->belongsTo(
+            Kasbon::class,
+            'kasbon_id'
+        );
     }
 }

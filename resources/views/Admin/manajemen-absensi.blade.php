@@ -1,1214 +1,737 @@
 @extends('layouts.admin')
 
-@section('title', 'Manajemen Absensi & Laporan')
+@section('title', 'Manajemen Absensi')
 
 @section('content')
 
-{{-- =========================================================
-    HERO — MANAJEMEN ABSENSI & LAPORAN
-========================================================= --}}
+@php
+$totalMenunggu = $draftLaporan->count();
+$totalDisetujui = $laporanValid->count();
 
-<section
-    class="relative isolate overflow-hidden rounded-[30px] bg-slate-950 text-white shadow-xl shadow-slate-200/50 mb-6">
+$isAdmin = auth()->check()
+&& in_array(auth()->user()->role, ['admin', 'super_admin']);
+@endphp
 
-    <div
-        class="absolute inset-0 -z-20 bg-cover bg-center opacity-[0.20]"
-        style="background-image: url('{{ asset('images/flower-mkp.jpg') }}');">
-    </div>
+<div class="space-y-6">
 
-    <div
-        class="absolute inset-0 -z-10 bg-gradient-to-br from-slate-950 via-slate-950/[0.96] to-blue-950/[0.92]">
-    </div>
+    {{-- =========================================================
+        PAGE HEADER / BANNER
+    ========================================================== --}}
+    <section class="relative isolate overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-    <div
-        class="absolute -right-24 -top-24 -z-10 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl">
-    </div>
-
-    <div
-        class="absolute -bottom-32 left-1/3 -z-10 h-72 w-72 rounded-full bg-indigo-500/10 blur-3xl">
-    </div>
-
-    <div
-        class="absolute inset-0 -z-10 opacity-[0.035]"
-        style="
-            background-image:
-                linear-gradient(rgba(255,255,255,.8) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,.8) 1px, transparent 1px);
-            background-size: 32px 32px;
-        ">
-    </div>
-
-    <div class="relative px-6 py-8 sm:px-8 lg:px-10 lg:py-9">
-
+        {{-- Subtle Grid --}}
         <div
-            class="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 backdrop-blur-md">
-
-            <span class="h-1.5 w-1.5 rounded-full bg-amber-400"></span>
-
-            <span
-                class="text-[9px] font-medium uppercase tracking-[0.18em] text-slate-300">
-                Modul Validasi Operasional
-            </span>
-
+            class="absolute inset-0 -z-10 opacity-[0.025]"
+            style="
+                background-image:
+                    linear-gradient(rgba(15,23,42,.8) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(15,23,42,.8) 1px, transparent 1px);
+                background-size: 32px 32px;
+            ">
         </div>
 
-        <h1
-            class="max-w-3xl text-[28px] font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-[32px] lg:text-[34px]">
+        <div class="relative px-5 py-6 sm:px-8 sm:py-8">
 
-            Manajemen Absensi
+            <div class="flex flex-col gap-6">
 
-            <span class="text-blue-300">
-                & Laporan Lapangan
-            </span>
+                {{-- Heading --}}
+                <div class="min-w-0">
+                    <div class="mb-3 flex items-center gap-2.5">
+                        <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+                        <span class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                            Validasi Operasional
+                        </span>
+                    </div>
 
-        </h1>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+                        Manajemen Absensi
+                    </h1>
 
-        <p
-            class="mt-3 max-w-2xl text-[12px] leading-6 text-slate-300 sm:text-[13px]">
+                    <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500 sm:text-[15px]">
+                        Tinjau laporan harian, periksa kehadiran tim lapangan,
+                        dan validasi aktivitas proyek dalam satu ruang kerja.
+                    </p>
+                </div>
 
-            Tinjau foto progres, lokasi GPS mandor, serta rekapitulasi
-            kehadiran pekerja sebelum laporan divalidasi dan diproses
-            ke tahap berikutnya.
+                {{-- Summary --}}
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
 
+                    {{-- Menunggu --}}
+                    <div class="rounded-xl border border-slate-200/80 bg-white/90 px-4 py-4">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                                Menunggu Validasi
+                            </p>
+                            <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+                        </div>
+
+                        <p class="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
+                            {{ number_format($totalMenunggu) }}
+                        </p>
+
+                        <p class="mt-1 text-xs text-slate-500 sm:text-sm">
+                            Laporan perlu diperiksa
+                        </p>
+                    </div>
+
+                    {{-- Disetujui --}}
+                    <div class="rounded-xl border border-slate-200/80 bg-white/90 px-4 py-4">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                                Disetujui
+                            </p>
+                            <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                        </div>
+
+                        <p class="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
+                            {{ number_format($totalDisetujui) }}
+                        </p>
+
+                        <p class="mt-1 text-xs text-slate-500 sm:text-sm">
+                            Laporan tervalidasi
+                        </p>
+                    </div>
+
+                    {{-- Sistem --}}
+                    <div class="rounded-xl border border-slate-200/80 bg-white/90 px-4 py-4">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                                Sistem Operasional
+                            </p>
+                            <span class="h-2 w-2 rounded-full bg-blue-500"></span>
+                        </div>
+
+                        <p class="mt-2 text-lg font-semibold tracking-tight text-slate-900">
+                            Absensi Harian
+                        </p>
+
+                        <p class="mt-1 text-xs text-slate-500 sm:text-sm">
+                            Monitoring laporan lapangan
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    {{-- =========================================================
+        NOTIFICATION
+    ========================================================== --}}
+    @if(session('success'))
+    <div class="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5">
+        <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-500"></span>
+        <p class="text-sm font-medium text-emerald-800">
+            {{ session('success') }}
         </p>
+    </div>
+    @endif
 
-        <div class="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
+    @if(session('error'))
+    <div class="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3.5">
+        <span class="mt-1 h-2 w-2 shrink-0 rounded-full bg-rose-500"></span>
+        <p class="text-sm font-medium text-rose-800">
+            {{ session('error') }}
+        </p>
+    </div>
+    @endif
 
-            {{-- Draft --}}
-            <div
-                class="group rounded-2xl border border-white/10 bg-white/[0.065] p-4 backdrop-blur-md transition duration-300 hover:bg-white/[0.10]">
 
-                <div class="flex items-center justify-between">
+    {{-- =========================================================
+        PENDING VALIDATION
+    ========================================================== --}}
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-                    <p
-                        class="text-[9px] font-medium uppercase tracking-[0.12em] text-slate-400">
+        {{-- Section Header --}}
+        <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div>
+                <div class="flex items-center gap-2.5">
+                    <span class="h-2 w-2 rounded-full bg-amber-500"></span>
+                    <h2 class="text-base font-semibold tracking-tight text-slate-800 sm:text-lg">
                         Menunggu Validasi
-                    </p>
-
-                    <div
-                        class="flex h-7 w-7 items-center justify-center rounded-lg border border-amber-400/10 bg-amber-400/[0.08]">
-
-                        <svg
-                            class="h-3.5 w-3.5 text-amber-300"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.7"
-                            viewBox="0 0 24 24">
-
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M12 8v4l2.5 2.5M21 12a9 9 0 1 1-18 0 9 9 0 0118 0Z" />
-
-                        </svg>
-
-                    </div>
-
+                    </h2>
                 </div>
 
-                <p
-                    class="mt-3 text-[25px] font-semibold tracking-[-0.04em] text-white">
-
-                    {{ count($draftLaporan) }}
-
+                <p class="mt-1.5 text-sm leading-6 text-slate-500">
+                    Periksa dokumentasi, catatan kegiatan, dan daftar kehadiran sebelum mengambil keputusan.
                 </p>
-
-                <p class="mt-1 text-[10px] text-slate-400">
-                    Draft laporan
-                </p>
-
             </div>
 
-            {{-- Laporan Valid --}}
-            <div
-                class="group rounded-2xl border border-white/10 bg-white/[0.065] p-4 backdrop-blur-md transition duration-300 hover:bg-white/[0.10]">
-
-                <div class="flex items-center justify-between">
-
-                    <p
-                        class="text-[9px] font-medium uppercase tracking-[0.12em] text-slate-400">
-                        Laporan Disetujui
-                    </p>
-
-                    <div
-                        class="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-400/10 bg-emerald-400/[0.08]">
-
-                        <svg
-                            class="h-3.5 w-3.5 text-emerald-300"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.7"
-                            viewBox="0 0 24 24">
-
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="m5 12.5 4.5 4.5L19 7.5" />
-
-                        </svg>
-
-                    </div>
-
-                </div>
-
-                <p
-                    class="mt-3 text-[25px] font-semibold tracking-[-0.04em] text-white">
-
-                    {{ count($laporanValid) }}
-
-                </p>
-
-                <p class="mt-1 text-[10px] text-slate-400">
-                    Laporan tervalidasi
-                </p>
-
-            </div>
-
-            {{-- Status --}}
-            <div
-                class="group rounded-2xl border border-white/10 bg-white/[0.065] p-4 backdrop-blur-md transition duration-300 hover:bg-white/[0.10]">
-
-                <div class="flex items-center justify-between">
-
-                    <p
-                        class="text-[9px] font-medium uppercase tracking-[0.12em] text-slate-400">
-                        Status Sistem
-                    </p>
-
-                    <div
-                        class="flex h-7 w-7 items-center justify-center rounded-lg border border-blue-400/10 bg-blue-400/[0.08]">
-
-                        <svg
-                            class="h-3.5 w-3.5 text-blue-300"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.7"
-                            viewBox="0 0 24 24">
-
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0118 0Z" />
-
-                        </svg>
-
-                    </div>
-
-                </div>
-
-                <p
-                    class="mt-3 text-[20px] font-semibold tracking-[-0.03em] text-white">
-                    Operasional
-                </p>
-
-                <p class="mt-1 text-[10px] text-slate-400">
-                    Validasi berjalan normal
-                </p>
-
-            </div>
-
+            <span class="inline-flex w-fit items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
+                {{ number_format($totalMenunggu) }} laporan
+            </span>
         </div>
 
-    </div>
+        <div class="space-y-4 p-4 sm:p-6">
 
-</section>
-
-
-{{-- =========================================================
-    BAGIAN 1: DRAFT LAPORAN
-========================================================= --}}
-
-<div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 lg:p-8 mb-6">
-
-    <div
-        class="mb-6 pb-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-2">
-
-        <div>
-
-            <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-
-                <span>
-                    Draft Laporan Menunggu Validasi
-                </span>
-
-                @if(count($draftLaporan) > 0)
-
-                    <span
-                        class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full">
-
-                        {{ count($draftLaporan) }}
-
-                    </span>
-
-                @endif
-
-            </h2>
-
-            <p class="text-xs text-slate-500 mt-1">
-                Periksa foto lapangan dan daftar kehadiran sebelum menyetujui.
-                Data yang disetujui akan masuk ke rekap gaji.
-            </p>
-
-        </div>
-
-    </div>
-
-
-    <div class="space-y-4">
-
-        @forelse($draftLaporan as $laporan)
+            @forelse($draftLaporan as $laporan)
 
             @php
+            $tanggalLaporan = \Carbon\Carbon::parse($laporan->tanggal);
+            $jumlahHadir = $laporan->absensis
+            ->where('status', 'Hadir')
+            ->count();
 
-                $proyek = $laporan->proyek;
+            $jumlahTidakHadir = $laporan->absensis
+            ->whereIn('status', ['Sakit', 'Izin', 'Alfa', 'Alpa'])
+            ->count();
 
-                $totalHadir = $laporan->absensis
-                    ->where('status', 'Hadir')
-                    ->count();
-
-                $totalTidakHadir = $laporan->absensis
-                    ->whereIn('status', ['Sakit', 'Izin', 'Alfa'])
-                    ->count();
-
+            $detailId = 'detail-laporan-' . $laporan->id;
             @endphp
 
+            <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white transition duration-200 hover:border-slate-300 hover:shadow-sm">
 
-            <details
-                class="group bg-white border border-slate-200/90 rounded-xl shadow-xs overflow-hidden transition-all duration-200 [&_summary::-webkit-details-marker]:hidden">
+                {{-- Report Header --}}
+                <div class="flex flex-col gap-4 p-4 sm:p-5 lg:flex-row lg:items-start lg:justify-between">
 
+                    <div class="min-w-0 flex-1">
 
-                {{-- =================================================
-                    SUMMARY
-                ================================================== --}}
-
-                <summary
-                    class="flex flex-col md:flex-row md:items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-colors select-none">
-
-                    <div class="flex items-center space-x-4 mb-3 md:mb-0">
-
-                        <span
-                            class="transition duration-300 group-open:-rotate-180 text-slate-400 bg-slate-100 border border-slate-200 rounded-full p-1 shrink-0">
-
-                            <svg
-                                class="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24">
-
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M19 9l-7 7-7-7">
-                                </path>
-
-                            </svg>
-
-                        </span>
-
-
-                        <div>
-
-                            <h3 class="font-bold text-slate-800 text-base">
-
-                                {{ $proyek->nama_proyek ?? 'Proyek Tanpa Nama' }}
-
-                            </h3>
-
-                            <p class="text-xs font-medium text-slate-500 mt-0.5">
-
-                                {{ \Carbon\Carbon::parse($laporan->tanggal)->translatedFormat('l, d F Y') }}
-
-                                •
-
-                                <span class="text-slate-700 font-semibold">
-
-                                    Mandor:
-                                    {{ $laporan->pembuatLaporan->nama ?? '-' }}
-
-                                </span>
-
-                            </p>
-
-                        </div>
-
-                    </div>
-
-
-                    <div
-                        class="flex items-center justify-between md:justify-end w-full md:w-auto space-x-4">
-
-                        <div class="flex space-x-2">
-
-                            <span
-                                class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 rounded-lg">
-
-                                {{ $totalHadir }} Hadir
-
+                        <div class="mb-3 flex flex-wrap items-center gap-2">
+                            <span class="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                                <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                                Menunggu Validasi
                             </span>
 
-                            @if($totalTidakHadir > 0)
-
-                                <span
-                                    class="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200/60 px-2.5 py-1 rounded-lg">
-
-                                    {{ $totalTidakHadir }} Absen
-
-                                </span>
-
-                            @endif
-
+                            <span class="text-xs font-medium text-slate-400">
+                                {{ $tanggalLaporan->translatedFormat('l, d F Y') }}
+                            </span>
                         </div>
 
+                        <h3 class="text-base font-semibold leading-6 tracking-tight text-slate-800 sm:text-lg">
+                            {{ $laporan->proyek->nama_proyek ?? 'Proyek tidak tersedia' }}
+                        </h3>
 
-                        {{-- =================================================
-                            ACTION BUTTONS
-                        ================================================== --}}
+                        <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
 
-                        <div
-                            class="flex space-x-2"
-                            onclick="event.stopPropagation();">
+                            <span class="inline-flex items-center gap-1.5">
+                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3M4 11h16M5 5h14a1 1 0 011 1v13a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
+                                </svg>
+                                {{ $tanggalLaporan->format('d/m/Y') }}
+                            </span>
 
-                            {{-- SETUJUI --}}
-                            <form
-                                action="{{ route('admin.absensi.setujui', ['proyek_id' => $proyek->id, 'tanggal' => $laporan->tanggal]) }}"
-                                method="POST"
-                                class="form-setujui">
+                            <span class="inline-flex items-center gap-1.5">
+                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H2v-2a4 4 0 014-4h3m6-7a4 4 0 11-8 0 4 4 0 018 0zm5 3a3 3 0 10-2-5.2" />
+                                </svg>
+                                {{ $laporan->absensis->count() }} anggota
+                            </span>
 
-                                @csrf
-
-                                <button
-                                    type="submit"
-                                    class="btn-setujui flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors shadow-2xs">
-
-                                    <svg
-                                        class="w-3.5 h-3.5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24">
-
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2.5"
-                                            d="M5 13l4 4L19 7">
-                                        </path>
-
-                                    </svg>
-
-                                    <span>
-                                        Setujui
-                                    </span>
-
-                                </button>
-
-                            </form>
-
-
-                            {{-- TOLAK --}}
-                            <form
-                                action="{{ route('admin.absensi.tolak', ['proyek_id' => $proyek->id, 'tanggal' => $laporan->tanggal]) }}"
-                                method="POST"
-                                class="form-tolak">
-
-                                @csrf
-
-                                <button
-                                    type="submit"
-                                    class="btn-tolak flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-colors shadow-2xs">
-
-                                    <svg
-                                        class="w-3.5 h-3.5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24">
-
-                                        <path
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            stroke-width="2.5"
-                                            d="M6 18L18 6M6 6l12 12">
-                                        </path>
-
-                                    </svg>
-
-                                    <span>
-                                        Tolak
-                                    </span>
-
-                                </button>
-
-                            </form>
-
+                            <span class="inline-flex items-center gap-1.5">
+                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                {{ $jumlahHadir }} hadir
+                            </span>
                         </div>
-
                     </div>
 
-                </summary>
+                    {{-- Actions --}}
+                    <div class="flex shrink-0 flex-wrap gap-2 lg:justify-end">
 
+                        <button
+                            type="button"
+                            onclick="toggleDetail('{{ $detailId }}', this)"
+                            class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                            <svg class="h-4 w-4 transition-transform" data-chevron fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 9l-7 7-7-7" />
+                            </svg>
+                            Detail Laporan
+                        </button>
 
-                {{-- =================================================
-                    DETAIL
-                ================================================== --}}
+                        @if($isAdmin)
+                        <button
+                            type="button"
+                            onclick="konfirmasiAbsensi('setujui', '{{ $laporan->proyek_id }}', '{{ $tanggalLaporan->format('Y-m-d') }}')"
+                            class="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Setujui
+                        </button>
 
-                <div class="border-t border-slate-200/80 p-5 bg-slate-50/50">
+                        <button
+                            type="button"
+                            onclick="konfirmasiAbsensi('tolak', '{{ $laporan->proyek_id }}', '{{ $tanggalLaporan->format('Y-m-d') }}')"
+                            class="inline-flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50">
+                            Tolak
+                        </button>
+                        @endif
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    </div>
+                </div>
 
-                        {{-- FOTO & LAPORAN --}}
-                        <div class="lg:col-span-1 space-y-4">
+                {{-- Expandable Details --}}
+                <div id="{{ $detailId }}" class="hidden border-t border-slate-100 bg-slate-50/50">
 
-                            <div
-                                class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                    <div class="space-y-5 p-4 sm:p-5">
 
-                                <h4
-                                    class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">
-
-                                    Foto Lapangan
-
+                        {{-- Documentation --}}
+                        <div>
+                            <div class="mb-3 flex items-center gap-2">
+                                <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+                                <h4 class="text-sm font-semibold text-slate-800">
+                                    Dokumentasi Lapangan
                                 </h4>
+                            </div>
 
+                            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 
-                                <div class="space-y-3">
-
-                                    {{-- FOTO PAGI --}}
-                                    <div>
-
-                                        <p
-                                            class="text-[10px] font-bold text-slate-500 mb-1">
-
-                                            FOTO PAGI / BRIEFING
-
-                                        </p>
-
-                                        @if($laporan->foto_pagi)
-
-                                            <a
-                                                href="{{ asset('storage/' . $laporan->foto_pagi) }}"
-                                                target="_blank">
-
-                                                <img
-                                                    src="{{ asset('storage/' . $laporan->foto_pagi) }}"
-                                                    class="w-full h-32 object-cover rounded-lg border border-slate-200 hover:opacity-90 transition-opacity"
-                                                    alt="Foto Pagi">
-
-                                            </a>
-
-                                        @else
-
-                                            <div
-                                                class="w-full h-28 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-slate-400 border border-slate-200/60">
-
-                                                Tidak ada foto pagi
-
-                                            </div>
-
-                                        @endif
-
+                                {{-- Foto Pagi --}}
+                                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                                    <div class="border-b border-slate-100 px-4 py-3">
+                                        <p class="text-sm font-semibold text-slate-700">Dokumentasi Pagi</p>
                                     </div>
 
-
-                                    {{-- FOTO SORE --}}
-                                    <div>
-
-                                        <p
-                                            class="text-[10px] font-bold text-slate-500 mb-1">
-
-                                            FOTO SORE / PROGRES
-
-                                        </p>
-
-                                        @if($laporan->foto_sore)
-
-                                            <a
-                                                href="{{ asset('storage/' . $laporan->foto_sore) }}"
-                                                target="_blank">
-
-                                                <img
-                                                    src="{{ asset('storage/' . $laporan->foto_sore) }}"
-                                                    class="w-full h-32 object-cover rounded-lg border border-slate-200 hover:opacity-90 transition-opacity"
-                                                    alt="Foto Sore">
-
-                                            </a>
-
-                                        @else
-
-                                            <div
-                                                class="w-full h-28 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-slate-400 border border-slate-200/60">
-
-                                                Belum ada foto sore
-
-                                            </div>
-
-                                        @endif
-
-                                    </div>
-
-                                </div>
-
-
-                                {{-- GPS --}}
-                                @if($laporan->latitude && $laporan->longitude)
-
-                                    <a
-                                        href="https://www.google.com/maps/search/?api=1&query={{ $laporan->latitude }},{{ $laporan->longitude }}"
-                                        target="_blank"
-                                        class="mt-4 flex items-center justify-center space-x-2 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2 rounded-lg border border-slate-300/70 transition-colors">
-
-                                        <svg
-                                            class="w-4 h-4 text-slate-500"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24">
-
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
-                                            </path>
-
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="2"
-                                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z">
-                                            </path>
-
-                                        </svg>
-
-                                        <span>
-                                            Cek Titik GPS Mandor
-                                        </span>
-
+                                    @if($laporan->foto_pagi)
+                                    <a href="{{ asset('storage/' . $laporan->foto_pagi) }}" target="_blank" rel="noopener noreferrer">
+                                        <img
+                                            src="{{ asset('storage/' . $laporan->foto_pagi) }}"
+                                            alt="Dokumentasi pagi"
+                                            loading="lazy"
+                                            class="h-52 w-full bg-slate-100 object-cover transition hover:opacity-90">
                                     </a>
+                                    @else
+                                    <div class="flex h-40 items-center justify-center bg-slate-50 px-4 text-sm text-slate-400">
+                                        Foto pagi belum tersedia
+                                    </div>
+                                    @endif
+                                </div>
 
-                                @endif
+                                {{-- Foto Sore --}}
+                                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                                    <div class="border-b border-slate-100 px-4 py-3">
+                                        <p class="text-sm font-semibold text-slate-700">Dokumentasi Sore</p>
+                                    </div>
 
-                            </div>
-
-
-                            {{-- JURNAL --}}
-                            <div
-                                class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-
-                                <h4
-                                    class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-
-                                    Jurnal Harian
-
-                                </h4>
-
-                                <div
-                                    class="text-xs text-slate-700 leading-relaxed whitespace-pre-line bg-slate-50 p-3 rounded-lg border border-slate-200/60">
-
-                                    {{ $laporan->kegiatan ?? 'Mandor belum menulis jurnal kegiatan harian.' }}
-
+                                    @if($laporan->foto_sore)
+                                    <a href="{{ asset('storage/' . $laporan->foto_sore) }}" target="_blank" rel="noopener noreferrer">
+                                        <img
+                                            src="{{ asset('storage/' . $laporan->foto_sore) }}"
+                                            alt="Dokumentasi sore"
+                                            loading="lazy"
+                                            class="h-52 w-full bg-slate-100 object-cover transition hover:opacity-90">
+                                    </a>
+                                    @else
+                                    <div class="flex h-40 items-center justify-center bg-slate-50 px-4 text-sm text-slate-400">
+                                        Foto sore belum tersedia
+                                    </div>
+                                    @endif
                                 </div>
 
                             </div>
-
                         </div>
 
+                        {{-- GPS --}}
+                        @if($laporan->latitude && $laporan->longitude)
+                        <div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-700">Lokasi Absensi</p>
+                                <p class="mt-1 break-all text-xs text-slate-500">
+                                    {{ $laporan->latitude }}, {{ $laporan->longitude }}
+                                </p>
+                            </div>
 
-                        {{-- DAFTAR PEGAWAI --}}
-                        <div class="lg:col-span-2">
+                            <a
+                                href="https://www.google.com/maps?q={{ $laporan->latitude }},{{ $laporan->longitude }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 21s7-4.4 7-11a7 7 0 10-14 0c0 6.6 7 11 7 11z" />
+                                    <circle cx="12" cy="10" r="2.3" stroke-width="1.8" />
+                                </svg>
+                                Buka Google Maps
+                            </a>
+                        </div>
+                        @endif
 
-                            <h4
-                                class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">
+                        {{-- Journal --}}
+                        <div class="rounded-xl border border-slate-200 bg-white p-4">
+                            <div class="mb-2 flex items-center gap-2">
+                                <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+                                <h4 class="text-sm font-semibold text-slate-800">Catatan Kegiatan</h4>
+                            </div>
 
-                                Daftar Kehadiran Pegawai
+                            <p class="whitespace-pre-line text-sm leading-6 text-slate-600">{{ $laporan->kegiatan ?: 'Tidak ada catatan kegiatan.' }}</p>
+                        </div>
 
-                            </h4>
+                        {{-- Attendance List --}}
+                        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
 
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="flex flex-col gap-2 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+                                <h4 class="text-sm font-semibold text-slate-800">
+                                    Rincian Kehadiran
+                                </h4>
+
+                                <div class="flex flex-wrap gap-2 text-xs font-semibold">
+                                    <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700">
+                                        {{ $jumlahHadir }} Hadir
+                                    </span>
+                                    <span class="rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-rose-700">
+                                        {{ $jumlahTidakHadir }} Tidak Hadir
+                                    </span>
+                                </div>
+                            </div>
+
+                            @if($laporan->absensis->count())
+                            <div class="divide-y divide-slate-100">
 
                                 @foreach($laporan->absensis as $absen)
+                                @php
+                                $statusAbsen = $absen->status ?? '-';
 
-                                    <div
-                                        class="bg-white p-3 rounded-xl border border-slate-200/80 flex justify-between items-center shadow-2xs">
+                                $statusClass = match ($statusAbsen) {
+                                'Hadir' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                                'Sakit', 'Izin', 'Alfa', 'Alpa' => 'border-amber-200 bg-amber-50 text-amber-700',
+                                default => 'border-slate-200 bg-slate-50 text-slate-600',
+                                };
+                                @endphp
 
-                                        <div>
+                                <div class="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-semibold text-slate-700">
+                                            {{ $absen->pegawai->nama ?? 'Pegawai tidak tersedia' }}
+                                        </p>
 
-                                            <p class="text-xs font-bold text-slate-800">
-                                                {{ $absen->pegawai->nama ?? 'Pegawai' }}
-                                            </p>
-
-                                            <p class="text-[11px] text-slate-500 font-medium">
-                                                Durasi: {{ $absen->durasi ?? '-' }}
-                                            </p>
-
-                                            @if($absen->keterangan)
-
-                                                <p class="text-[10px] text-amber-700 italic mt-0.5">
-                                                    Note: {{ $absen->keterangan }}
-                                                </p>
-
+                                        <p class="mt-1 text-xs leading-5 text-slate-500">
+                                            Durasi:
+                                            {{ $absen->durasi ?? '-' }}
+                                            @if(!empty($absen->keterangan))
+                                            <span class="mx-1 text-slate-300">·</span>
+                                            {{ $absen->keterangan }}
                                             @endif
-
-                                        </div>
-
-                                        <div>
-
-                                            @if($absen->status == 'Hadir')
-
-                                                <span
-                                                    class="inline-block px-2 py-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md">
-                                                    HADIR
-                                                </span>
-
-                                            @elseif($absen->status == 'Sakit')
-
-                                                <span
-                                                    class="inline-block px-2 py-0.5 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-md">
-                                                    SAKIT
-                                                </span>
-
-                                            @elseif($absen->status == 'Izin')
-
-                                                <span
-                                                    class="inline-block px-2 py-0.5 text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 rounded-md">
-                                                    IZIN
-                                                </span>
-
-                                            @else
-
-                                                <span
-                                                    class="inline-block px-2 py-0.5 text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-md">
-                                                    ALFA
-                                                </span>
-
-                                            @endif
-
-                                        </div>
-
+                                        </p>
                                     </div>
 
+                                    <span class="inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold {{ $statusClass }}">
+                                        {{ $statusAbsen }}
+                                    </span>
+                                </div>
                                 @endforeach
 
                             </div>
+                            @else
+                            <div class="px-4 py-8 text-center text-sm text-slate-400">
+                                Belum ada rincian kehadiran.
+                            </div>
+                            @endif
 
                         </div>
-
                     </div>
+                </div>
+            </article>
 
+            @empty
+
+            {{-- Empty State --}}
+            <div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 px-6 py-12 text-center sm:py-16">
+
+                <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <svg class="h-7 w-7 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5-3v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2z" />
+                    </svg>
                 </div>
 
-            </details>
+                <h3 class="mt-5 text-base font-semibold text-slate-800">
+                    Tidak Ada Laporan Menunggu
+                </h3>
 
-        @empty
-
-            <div
-                class="text-center py-10 bg-slate-50/60 rounded-xl border border-dashed border-slate-300">
-
-                <svg
-                    class="w-10 h-10 text-slate-300 mx-auto mb-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24">
-
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="1.5"
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z">
-                    </path>
-
-                </svg>
-
-                <p class="text-slate-600 text-sm font-semibold">
-                    Semua Draft Terproses!
+                <p class="mt-2 max-w-sm text-sm leading-6 text-slate-500">
+                    Semua laporan yang masuk telah diproses atau belum ada laporan baru dari lapangan.
                 </p>
-
-                <p class="text-slate-400 text-xs mt-1">
-                    Tidak ada draft absensi atau laporan yang menunggu validasi saat ini.
-                </p>
-
             </div>
 
-        @endforelse
-
-    </div>
-
-</div>
-
-
-{{-- =========================================================
-    BAGIAN 2: LAPORAN DISETUJUI
-========================================================= --}}
-
-<div
-    class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 lg:p-8">
-
-    <div
-        class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 pb-4 border-b border-slate-100">
-
-        <div>
-
-            <h2 class="text-lg font-bold text-slate-800">
-                Laporan Proyek Disetujui
-            </h2>
-
-            <p class="text-xs text-slate-500 mt-1">
-                Data absensi dan progres harian yang sudah sah dan siap diproses ke penggajian.
-            </p>
+            @endforelse
 
         </div>
+    </section>
 
 
-        <form
-            action="{{ route('admin.absensi.index') }}"
-            method="GET"
-            class="flex items-center space-x-3 bg-slate-50 p-1.5 rounded-xl border border-slate-200/80">
+    {{-- =========================================================
+        APPROVED REPORTS
+    ========================================================== --}}
+    <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-            <label
-                for="filter_tanggal"
-                class="text-xs font-semibold text-slate-600 pl-2">
+        {{-- Section Header --}}
+        <div class="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
 
-                Tanggal:
+            <div>
+                <div class="flex items-center gap-2.5">
+                    <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                    <h2 class="text-base font-semibold tracking-tight text-slate-800 sm:text-lg">
+                        Laporan Disetujui
+                    </h2>
+                </div>
 
-            </label>
-
-            <input
-                type="date"
-                id="filter_tanggal"
-                name="filter_tanggal"
-                value="{{ $tanggalFilter }}"
-                onchange="this.form.submit()"
-                class="rounded-lg border-slate-200 py-1.5 px-3 text-xs text-slate-700 font-semibold shadow-2xs focus:ring-2 focus:ring-slate-400 outline-none">
-
-        </form>
-
-    </div>
+                <p class="mt-1.5 text-sm leading-6 text-slate-500">
+                    Riwayat laporan yang telah divalidasi untuk pemantauan kehadiran.
+                </p>
+            </div>
 
 
-    <div class="overflow-x-auto">
+            {{-- Date Filter --}}
+            <form
+                id="filterAbsensiForm"
+                action="{{ route('admin.absensi.index') }}"
+                method="GET"
+                class="flex flex-col gap-2 sm:flex-row sm:items-end">
 
-        <table class="w-full text-left border-collapse min-w-[700px]">
+                <div>
+                    <label
+                        for="filter_tanggal"
+                        class="mb-1.5 block text-xs font-semibold text-slate-500">
+                        Filter Tanggal
+                    </label>
 
-            <thead>
+                    <input
+                        type="date"
+                        id="filter_tanggal"
+                        name="filter_tanggal"
+                        value="{{ request('filter_tanggal') }}"
+                        onchange="document.getElementById('filterAbsensiForm').requestSubmit()"
+                        class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-700 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100 sm:w-auto">
+                </div>
 
-                <tr
-                    class="border-b border-slate-200 text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-50/80">
+                @if(request()->filled('filter_tanggal'))
+                <a
+                    href="{{ route('admin.absensi.index') }}"
+                    class="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+                    Reset
+                </a>
+                @endif
 
-                    <th class="py-3 px-4 rounded-l-lg">
-                        Nama Proyek
-                    </th>
+            </form>
+        </div>
 
-                    <th class="py-3 px-4">
-                        Pengawas
-                    </th>
+        {{-- Table --}}
+        <div class="p-4 sm:p-6">
 
-                    <th class="py-3 px-4 text-center">
-                        Tukang Hadir
-                    </th>
+            @if($laporanValid->count())
 
-                    <th class="py-3 px-4 text-center">
-                        Tidak Hadir
-                    </th>
+            <div class="overflow-x-auto rounded-xl border border-slate-200">
+                <table class="min-w-[700px] w-full divide-y divide-slate-100 text-left">
 
-                    <th class="py-3 px-4 text-right rounded-r-lg">
-                        Aksi
-                    </th>
+                    <thead class="bg-slate-50/80">
+                        <tr>
+                            <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                                Proyek
+                            </th>
+                            <th class="px-4 py-3.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                                Pengawas
+                            </th>
+                            <th class="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                                Hadir
+                            </th>
+                            <th class="px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                                Tidak Hadir
+                            </th>
+                            <th class="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                                Aksi
+                            </th>
+                        </tr>
+                    </thead>
 
-                </tr>
+                    <tbody class="divide-y divide-slate-100 bg-white">
 
-            </thead>
+                        @foreach($laporanValid as $laporan)
+                        @php
+                        $jumlahHadirValid = $laporan->absensis
+                        ->where('status', 'Hadir')
+                        ->count();
 
+                        $jumlahTidakHadirValid = $laporan->absensis
+                        ->whereIn('status', ['Sakit', 'Izin', 'Alfa', 'Alpa'])
+                        ->count();
+                        @endphp
 
-            <tbody
-                class="text-xs text-slate-700 divide-y divide-slate-100">
+                        <tr class="transition hover:bg-slate-50/70">
 
-                @forelse($laporanValid as $laporan)
+                            <td class="px-4 py-4">
+                                <p class="text-sm font-semibold text-slate-800">
+                                    {{ $laporan->proyek->nama_proyek ?? 'Proyek tidak tersedia' }}
+                                </p>
+                                <p class="mt-1 text-xs text-slate-400">
+                                    {{ \Carbon\Carbon::parse($laporan->tanggal)->translatedFormat('d F Y') }}
+                                </p>
+                            </td>
 
-                    @php
+                            <td class="px-4 py-4">
+                                <p class="text-sm font-medium text-slate-700">
+                                    {{ $laporan->pegawai?->user?->name
+            ?? $laporan->pegawai?->nama
+            ?? 'Pengawas tidak ditemukan' }}
+                                </p>
+                            </td>
 
-                        $proyek = $laporan->proyek;
-
-                        $totalHadir = $laporan->absensis
-                            ->where('status', 'Hadir')
-                            ->count();
-
-                        $totalTidakHadir = $laporan->absensis
-                            ->whereIn('status', ['Sakit', 'Izin', 'Alfa'])
-                            ->count();
-
-                    @endphp
-
-
-                    <tr class="hover:bg-slate-50/80 transition-colors">
-
-                        <td class="py-3.5 px-4 font-bold text-slate-800">
-                            {{ $proyek->nama_proyek ?? '-' }}
-                        </td>
-
-                        <td class="py-3.5 px-4 text-slate-600 font-medium">
-                            {{ $laporan->pembuatLaporan->nama ?? '-' }}
-                        </td>
-
-                        <td class="py-3.5 px-4 text-center">
-
-                            <span
-                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-
-                                {{ $totalHadir }} Orang
-
-                            </span>
-
-                        </td>
-
-                        <td class="py-3.5 px-4 text-center">
-
-                            <span
-                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
-
-                                {{ $totalTidakHadir }} Orang
-
-                            </span>
-
-                        </td>
-
-                        <td class="py-3.5 px-4 text-right">
-
-                            <a
-                                href="{{ route('admin.absensi.detail', $proyek->id) }}"
-                                class="inline-flex items-center space-x-1.5 px-3 py-1.5 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors border border-slate-300/70 font-semibold text-xs">
-
-                                <span>
-                                    Buka Riwayat
+                            <td class="px-4 py-4 text-center">
+                                <span class="inline-flex min-w-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-700">
+                                    {{ $jumlahHadirValid }}
                                 </span>
+                            </td>
 
-                                <svg
-                                    class="w-3.5 h-3.5 text-slate-500"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24">
+                            <td class="px-4 py-4 text-center">
+                                <span class="inline-flex min-w-9 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-semibold text-amber-700">
+                                    {{ $jumlahTidakHadirValid }}
+                                </span>
+                            </td>
 
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M14 5l7 7m0 0l-7 7m7-7H3">
-                                    </path>
+                            <td class="px-4 py-4 text-right">
+                                <a
+                                    href="{{ route('admin.absensi.detail', ['proyek' => $laporan->proyek_id]) }}"
+                                    class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900">
+                                    Detail
+                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </a>
+                            </td>
 
-                                </svg>
+                        </tr>
+                        @endforeach
 
-                            </a>
+                    </tbody>
+                </table>
+            </div>
 
-                        </td>
+            @else
 
-                    </tr>
+            <div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 px-6 py-12 text-center">
 
-                @empty
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-200 bg-white">
+                    <svg class="h-6 w-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5-3v10a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h12a2 2 0 012 2z" />
+                    </svg>
+                </div>
 
-                    <tr>
+                <h3 class="mt-4 text-sm font-semibold text-slate-800">
+                    Belum Ada Laporan Disetujui
+                </h3>
 
-                        <td
-                            colspan="5"
-                            class="py-10 text-center text-slate-400">
+                <p class="mt-1.5 text-sm leading-6 text-slate-500">
+                    Laporan yang telah disetujui akan ditampilkan di bagian ini.
+                </p>
+            </div>
 
-                            Tidak ada laporan proyek yang disetujui pada tanggal
+            @endif
 
-                            <strong class="text-slate-600">
-
-                                {{ \Carbon\Carbon::parse($tanggalFilter)->translatedFormat('d F Y') }}
-
-                            </strong>.
-
-                        </td>
-
-                    </tr>
-
-                @endforelse
-
-            </tbody>
-
-        </table>
-
-    </div>
+        </div>
+    </section>
 
 </div>
 
 
 {{-- =========================================================
-    SWEETALERT2
+    HIDDEN VALIDATION FORMS
 ========================================================= --}}
+@if($isAdmin)
 
+<form id="formSetujuiAbsensi" method="POST" class="hidden">
+    @csrf
+</form>
+
+<form id="formTolakAbsensi" method="POST" class="hidden">
+    @csrf
+</form>
+
+@endif
+
+
+{{-- =========================================================
+    SCRIPTS
+========================================================= --}}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    function toggleDetail(id, button) {
+        const panel = document.getElementById(id);
 
-        /*
-        |--------------------------------------------------------------------------
-        | KONFIGURASI DASAR
-        |--------------------------------------------------------------------------
-        */
+        if (!panel) return;
 
-        const swalConfig = {
+        const willOpen = panel.classList.contains('hidden');
+        panel.classList.toggle('hidden');
+
+        const chevron = button.querySelector('[data-chevron]');
+
+        if (chevron) {
+            chevron.classList.toggle('rotate-180', willOpen);
+        }
+
+        button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    }
+
+    @if($isAdmin)
+
+    function konfirmasiAbsensi(aksi, proyek, tanggal) {
+        const isSetujui = aksi === 'setujui';
+
+        const form = document.getElementById(
+            isSetujui ? 'formSetujuiAbsensi' : 'formTolakAbsensi'
+        );
+
+        const routeBase = isSetujui ?
+            @json(route('admin.absensi.setujui', ['proyek' => '__PROYEK__', 'tanggal' => '__TANGGAL__'])) :
+            @json(route('admin.absensi.tolak', ['proyek' => '__PROYEK__', 'tanggal' => '__TANGGAL__']));
+
+        form.action = routeBase
+            .replace('__PROYEK__', encodeURIComponent(proyek))
+            .replace('__TANGGAL__', encodeURIComponent(tanggal));
+
+        Swal.fire({
+            title: isSetujui ? 'Setujui laporan absensi?' : 'Tolak laporan absensi?',
+            text: isSetujui ?
+                'Pastikan laporan kegiatan dan kehadiran telah diperiksa.' : 'Laporan untuk proyek dan tanggal ini akan ditolak.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: isSetujui ? 'Ya, setujui' : 'Ya, tolak',
+            cancelButtonText: 'Batal',
+            reverseButtons: true,
+            focusCancel: true,
+            buttonsStyling: false,
             customClass: {
                 popup: 'rounded-2xl',
-                confirmButton: 'rounded-xl px-5 py-2.5 text-sm font-semibold',
-                cancelButton: 'rounded-xl px-5 py-2.5 text-sm font-semibold'
-            },
-            buttonsStyling: true
-        };
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | KONFIRMASI SETUJUI
-        |--------------------------------------------------------------------------
-        */
-
-        document.querySelectorAll('.form-setujui').forEach(function (form) {
-
-            form.addEventListener('submit', function (event) {
-
-                event.preventDefault();
-
-                const button = form.querySelector('.btn-setujui');
-
-                Swal.fire({
-                    ...swalConfig,
-
-                    icon: 'question',
-
-                    title: 'Setujui Laporan?',
-
-                    html: `
-                        <div class="text-sm text-slate-500 leading-relaxed">
-                            Laporan absensi dan progres ini akan
-                            <strong class="text-slate-700">
-                                disahkan
-                            </strong>
-                            dan dapat digunakan untuk proses penggajian.
-                        </div>
-                    `,
-
-                    showCancelButton: true,
-
-                    confirmButtonText: 'Ya, Setujui',
-
-                    cancelButtonText: 'Batal',
-
-                    confirmButtonColor: '#059669',
-
-                    cancelButtonColor: '#64748b',
-
-                    reverseButtons: true,
-
-                    focusCancel: true
-
-                }).then(function (result) {
-
-                    if (result.isConfirmed) {
-
-                        /*
-                        | Disable tombol agar tidak double submit
-                        */
-
-                        button.disabled = true;
-
-                        button.classList.add(
-                            'opacity-70',
-                            'cursor-not-allowed'
-                        );
-
-                        button.innerHTML = `
-                            <svg
-                                class="w-3.5 h-3.5 animate-spin"
-                                fill="none"
-                                viewBox="0 0 24 24">
-
-                                <circle
-                                    class="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    stroke-width="4">
-                                </circle>
-
-                                <path
-                                    class="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z">
-                                </path>
-
-                            </svg>
-
-                            <span>
-                                Memproses...
-                            </span>
-                        `;
-
-                        form.submit();
-                    }
-
-                });
-
-            });
-
+                title: 'text-lg font-semibold text-slate-800',
+                htmlContainer: 'text-sm text-slate-500',
+                confirmButton: isSetujui ?
+                    'rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white mx-1' : 'rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white mx-1',
+                cancelButton: 'rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 mx-1'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
         });
+    }
+    @endif
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | KONFIRMASI TOLAK
-        |--------------------------------------------------------------------------
-        */
-
-        document.querySelectorAll('.form-tolak').forEach(function (form) {
-
-            form.addEventListener('submit', function (event) {
-
-                event.preventDefault();
-
-                const button = form.querySelector('.btn-tolak');
-
-                Swal.fire({
-                    ...swalConfig,
-
-                    icon: 'warning',
-
-                    title: 'Tolak Laporan?',
-
-                    html: `
-                        <div class="text-sm text-slate-500 leading-relaxed">
-                            Laporan ini akan ditandai sebagai
-                            <strong class="text-rose-600">
-                                ditolak
-                            </strong>
-                            dan mandor perlu melakukan perbaikan.
-                        </div>
-                    `,
-
-                    showCancelButton: true,
-
-                    confirmButtonText: 'Ya, Tolak',
-
-                    cancelButtonText: 'Batal',
-
-                    confirmButtonColor: '#e11d48',
-
-                    cancelButtonColor: '#64748b',
-
-                    reverseButtons: true,
-
-                    focusCancel: true
-
-                }).then(function (result) {
-
-                    if (result.isConfirmed) {
-
-                        button.disabled = true;
-
-                        button.classList.add(
-                            'opacity-70',
-                            'cursor-not-allowed'
-                        );
-
-                        button.innerHTML = `
-                            <svg
-                                class="w-3.5 h-3.5 animate-spin"
-                                fill="none"
-                                viewBox="0 0 24 24">
-
-                                <circle
-                                    class="opacity-25"
-                                    cx="12"
-                                    cy="12"
-                                    r="10"
-                                    stroke="currentColor"
-                                    stroke-width="4">
-                                </circle>
-
-                                <path
-                                    class="opacity-75"
-                                    fill="currentColor"
-                                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z">
-                                </path>
-
-                            </svg>
-
-                            <span>
-                                Memproses...
-                            </span>
-                        `;
-
-                        form.submit();
-                    }
-
-                });
-
-            });
-
-        });
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | NOTIFIKASI BERHASIL
-        |--------------------------------------------------------------------------
-        */
-
-        @if(session('success'))
-
-            Swal.fire({
-                icon: 'success',
-
-                title: 'Berhasil',
-
-                text: @json(session('success')),
-
-                confirmButtonText: 'Selesai',
-
-                confirmButtonColor: '#0f172a',
-
-                timer: 3200,
-
-                timerProgressBar: true,
-
-                showConfirmButton: false,
-
-                customClass: {
-                    popup: 'rounded-2xl'
-                }
-
-            });
-
-        @endif
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | NOTIFIKASI ERROR
-        |--------------------------------------------------------------------------
-        */
-
-        @if(session('error'))
-
-            Swal.fire({
-                icon: 'error',
-
-                title: 'Tidak Berhasil',
-
-                text: @json(session('error')),
-
-                confirmButtonText: 'Mengerti',
-
-                confirmButtonColor: '#e11d48',
-
-                customClass: {
-                    popup: 'rounded-2xl'
-                }
-
-            });
-
-        @endif
-
+    @if(session('success'))
+    Swal.fire({
+        icon: 'success',
+        title: 'Berhasil',
+        text: @json(session('success')),
+        confirmButtonText: 'Mengerti',
+        buttonsStyling: false,
+        customClass: {
+            popup: 'rounded-2xl',
+            title: 'text-lg font-semibold text-slate-800',
+            htmlContainer: 'text-sm text-slate-500',
+            confirmButton: 'rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white'
+        }
     });
+    @elseif(session('error'))
+    Swal.fire({
+        icon: 'error',
+        title: 'Terjadi Kesalahan',
+        text: @json(session('error')),
+        confirmButtonText: 'Mengerti',
+        buttonsStyling: false,
+        customClass: {
+            popup: 'rounded-2xl',
+            title: 'text-lg font-semibold text-slate-800',
+            htmlContainer: 'text-sm text-slate-500',
+            confirmButton: 'rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white'
+        }
+    });
+    @endif
 </script>
 
 @endsection

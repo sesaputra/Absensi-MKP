@@ -16,23 +16,37 @@ class Absensi extends Model
         'durasi',
         'keterangan',
         'status_validasi',
-        'status_pembayaran'
+        'status_pembayaran',
     ];
 
-    // Relasi: Absensi ini milik Proyek apa?
+    protected $casts = [
+        'tanggal' => 'date',
+    ];
+
+    /**
+     * Absensi ini tercatat pada proyek apa?
+     */
     public function proyek(): BelongsTo
     {
         return $this->belongsTo(Proyek::class);
     }
 
-    // Relasi: Absensi ini milik Pegawai siapa?
+    /**
+     * Absensi ini milik pegawai siapa?
+     */
     public function pegawai(): BelongsTo
     {
         return $this->belongsTo(Pegawai::class);
     }
 
-    public function laporanHarian()
-    {
-        return $this->belongsTo(LaporanHarian::class, 'laporan_harian_id');
-    }
+    /**
+     * Absensi ini tercatat dalam laporan harian apa?
+     */
+   public function laporanHarian()
+{
+    return $this->belongsTo(
+        LaporanHarian::class,
+        'laporan_harian_id'
+    );
+}
 }

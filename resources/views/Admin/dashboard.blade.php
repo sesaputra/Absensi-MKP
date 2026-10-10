@@ -5,871 +5,782 @@
 @section('content')
 
 @php
-    $jamSekarang = now()->hour;
+$jamSekarang = now()->hour;
 
-    $sapaan = $jamSekarang < 11
-        ? 'Selamat Pagi'
-        : ($jamSekarang < 15
-            ? 'Selamat Siang'
-            : ($jamSekarang < 19 ? 'Selamat Sore' : 'Selamat Malam'));
+$sapaan = $jamSekarang < 11
+    ? 'Selamat Pagi'
+    : ($jamSekarang < 15
+    ? 'Selamat Siang'
+    : ($jamSekarang < 19
+    ? 'Selamat Sore'
+    : 'Selamat Malam' ));
 
-    $tanggalHariIni = now()
-        ->locale('id')
-        ->translatedFormat('l, d F Y');
+    $tanggalHariIni=now()
+    ->locale('id')
+    ->translatedFormat('l, d F Y');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Values
+    |--------------------------------------------------------------------------
+    */
+
+    $totalPendingValidasi = $totalPendingValidasi ?? 0;
+    $totalProyekKritis = $totalProyekKritis ?? 0;
+    $totalProyekDanaMenipis = $totalProyekDanaMenipis ?? 0;
+    $totalPegawaiTanpaAkun = $totalPegawaiTanpaAkun ?? 0;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notification State
+    |--------------------------------------------------------------------------
+    */
 
     $adaNotifikasi =
-        (isset($totalPendingValidasi) && $totalPendingValidasi > 0) ||
-        (isset($totalProyekKritis) && $totalProyekKritis > 0) ||
-        (isset($totalPegawaiTanpaAkun) && $totalPegawaiTanpaAkun > 0);
-@endphp
-
-{{-- =========================================================
-    DASHBOARD WRAPPER
-========================================================== --}}
-
-{{-- =========================================================
-    HERO
-========================================================== --}}
-
-<section
-    class="relative overflow-hidden rounded-[30px] bg-slate-950 text-white shadow-xl shadow-slate-200/50">
-
-    {{-- Background --}}
-    <div
-        class="absolute inset-0 bg-cover bg-center opacity-[0.22]"
-        style="background-image: url('{{ asset('images/flower-mkp.jpg') }}');">
-    </div>
-
-    {{-- Gradient --}}
-    <div
-        class="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-950/[0.96] to-blue-950/[0.92]">
-    </div>
-
-    {{-- Decorative elements --}}
-    <div
-        class="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl">
-    </div>
-
-    <div
-        class="absolute -bottom-32 right-20 h-72 w-72 rounded-full bg-indigo-500/10 blur-3xl">
-    </div>
-
-    <div class="relative px-6 py-9 sm:px-8 lg:px-10 lg:py-10">
-
-        <div
-            class="flex flex-col gap-9 lg:flex-row lg:items-center lg:justify-between">
-
-            {{-- Hero Content --}}
-            <div class="max-w-2xl">
-
-                {{-- Date --}}
-                <div
-                    class="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.08] px-3.5 py-1.5 text-[11px] font-medium tracking-[0.01em] text-slate-300 backdrop-blur-md">
-
-                    <span
-                        class="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]">
-                    </span>
-
-                    {{ $tanggalHariIni }}
-
-                </div>
+    $totalPendingValidasi > 0 ||
+    $totalProyekKritis > 0 ||
+    $totalProyekDanaMenipis > 0 ||
+    $totalPegawaiTanpaAkun > 0;
 
 
-                {{-- Heading --}}
-                <h1
-                    class="text-[30px] font-semibold leading-tight tracking-[-0.025em] text-white sm:text-[38px]">
+    /*
+    |--------------------------------------------------------------------------
+    | Jumlah Jenis Peringatan
+    |--------------------------------------------------------------------------
+    */
 
-                    {{ $sapaan }}, {{ auth()->user()->name ?? 'Admin' }}
+    $jumlahPeringatan = collect([
+    $totalPendingValidasi,
+    $totalProyekKritis,
+    $totalProyekDanaMenipis,
+    $totalPegawaiTanpaAkun,
+    ])->filter(fn ($value) => $value > 0)->count();
+    @endphp
 
-                </h1>
+
+    <div class="space-y-7">
 
 
-                {{-- Description --}}
-                <p
-                    class="mt-4 max-w-xl text-[13px] leading-6 tracking-[0.005em] text-slate-300 sm:text-sm">
+        {{-- ============================================================
+        HEADER
+    ============================================================ --}}
+        <section class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white">
 
-                    Pantau kondisi proyek, keuangan, pegawai, dan aktivitas operasional
-                    perusahaan Anda dari satu tempat.
+            <div class="absolute right-0 top-0 h-full w-72 overflow-hidden opacity-[0.07]">
 
-                </p>
+                <img
+                    src="{{ asset('images/flower-mkp.jpg') }}"
+                    alt=""
+                    class="h-full w-full object-cover object-center">
 
             </div>
 
 
-            {{-- Hero Summary --}}
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:w-[390px]">
+            <div class="relative z-10 flex flex-col gap-5 px-6 py-6 sm:px-8 sm:py-7 lg:flex-row lg:items-center lg:justify-between">
 
-                {{-- Active --}}
-                <div
-                    class="rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-md">
+                <div>
 
-                    <p
-                        class="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400">
-                        Proyek Aktif
-                    </p>
+                    <div class="mb-2 flex items-center gap-2">
 
-                    <p
-                        class="mt-1.5 text-[26px] font-semibold tracking-[-0.03em] text-white tabular-nums">
-                        {{ $totalProyekAktif }}
+                        <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+
+                        <span class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            Sistem Manajemen MKP
+                        </span>
+
+                    </div>
+
+
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+                        {{ $sapaan }}, {{ auth()->user()->name }}
+                    </h1>
+
+
+                    <p class="mt-1 text-sm text-slate-500">
+                        Berikut ringkasan kondisi proyek dan aktivitas terbaru.
                     </p>
 
                 </div>
 
 
-                {{-- Completed --}}
-                <div
-                    class="rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-md">
+                <div class="flex items-center gap-4">
 
-                    <p
-                        class="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400">
-                        Selesai
-                    </p>
+                    <div class="hidden h-10 w-px bg-slate-200 sm:block"></div>
 
-                    <p
-                        class="mt-1.5 text-[26px] font-semibold tracking-[-0.03em] text-white tabular-nums">
-                        {{ $totalProyekSelesai }}
-                    </p>
+                    <div class="text-left sm:text-right">
 
-                </div>
+                        <p class="text-xs font-medium text-slate-400">
+                            Hari ini
+                        </p>
 
+                        <p class="mt-1 text-sm font-semibold text-slate-700">
+                            {{ $tanggalHariIni }}
+                        </p>
 
-                {{-- Employees --}}
-                <div
-                    class="col-span-2 rounded-2xl border border-white/10 bg-white/[0.08] p-4 backdrop-blur-md sm:col-span-1">
-
-                    <p
-                        class="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400">
-                        Pegawai
-                    </p>
-
-                    <p
-                        class="mt-1.5 text-[26px] font-semibold tracking-[-0.03em] text-white tabular-nums">
-                        {{ $totalPegawai }}
-                    </p>
+                    </div>
 
                 </div>
 
             </div>
 
-        </div>
-
-    </div>
-
-</section>
+        </section>
 
 
-{{-- =========================================================
-    ACTION CENTER
-========================================================== --}}
 
-@if($adaNotifikasi)
-
-    <section>
-
-        <div class="mb-4 flex items-center gap-3">
-
-            <div
-                class="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-
-                <svg
-                    class="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24">
-
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0l-6.93 12c-.77 1.33.19 3 1.73 3z" />
-
-                </svg>
-
-            </div>
-
-            <div>
-
-                <h2
-                    class="text-[13px] font-semibold tracking-[-0.005em] text-slate-900">
-                    Perlu Perhatian
-                </h2>
-
-                <p class="mt-0.5 text-[11px] font-normal text-slate-500">
-                    Beberapa hal membutuhkan tindakan Anda.
-                </p>
-
-            </div>
-
-        </div>
+        {{-- ============================================================
+        KPI
+    ============================================================ --}}
+        <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
 
-        <div class="grid grid-cols-1 gap-3 lg:grid-cols-3">
+            {{-- Proyek Aktif --}}
+            <div class="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
 
-            {{-- Pending Validation --}}
-            @if(isset($totalPendingValidasi) && $totalPendingValidasi > 0)
+                <div class="flex items-start justify-between">
 
-                <a
-                    href="{{ route('admin.absensi.index') }}"
-                    class="group rounded-2xl border border-amber-100 bg-amber-50/70 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:bg-amber-50 hover:shadow-lg hover:shadow-amber-100/50">
+                    <div>
 
-                    <div class="flex items-start justify-between gap-4">
+                        <p class="text-sm font-medium text-slate-500">
+                            Proyek Aktif
+                        </p>
 
-                        <div>
+                        <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+                            {{ number_format($totalProyekAktif) }}
+                        </p>
 
-                            <div
-                                class="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                    </div>
 
-                                <svg
-                                    class="h-4 w-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24">
 
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-
-                                </svg>
-
-                            </div>
-
-                            <p
-                                class="text-[13px] font-semibold tracking-[-0.005em] text-amber-950">
-                                Validasi Menunggu
-                            </p>
-
-                            <p class="mt-1 text-[11px] leading-5 text-amber-800">
-                                {{ $totalPendingValidasi }} laporan harian & absensi
-                                membutuhkan validasi.
-                            </p>
-
-                        </div>
+                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
 
                         <svg
-                            class="mt-1 h-4 w-4 text-amber-500 transition-transform group-hover:translate-x-1"
+                            class="h-5 w-5"
                             fill="none"
+                            viewBox="0 0 24 24"
                             stroke="currentColor"
-                            viewBox="0 0 24 24">
-
+                            stroke-width="1.8">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M9 5l7 7-7 7" />
-
+                                d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-7h6v7" />
                         </svg>
 
                     </div>
 
-                </a>
-
-            @endif
+                </div>
 
 
-            {{-- Critical Projects --}}
-            @if(isset($totalProyekKritis) && $totalProyekKritis > 0)
+                <div class="mt-4 flex items-center gap-2 text-xs text-slate-400">
+
+                    <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>
+
+                    Proyek dengan status berjalan
+
+                </div>
+
+            </div>
+
+            {{-- Proyek Selesai --}}
+            <div class="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+
+                <div class="flex items-start justify-between">
+
+                    <div>
+
+                        <p class="text-sm font-medium text-slate-500">
+                            Proyek Selesai
+                        </p>
+
+                        <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+                            {{ number_format($totalProyekSelesai) }}
+                        </p>
+
+                    </div>
+
+
+                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+
+                        <svg
+                            class="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="1.8">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="m5 12 4 4L19 6" />
+                        </svg>
+
+                    </div>
+
+                </div>
+
+
+                <div class="mt-4 flex items-center gap-2 text-xs text-slate-400">
+
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+
+                    Proyek yang telah selesai
+
+                </div>
+
+            </div>
+
+
+
+            {{-- Pegawai Aktif --}}
+            <div class="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+
+                <div class="flex items-start justify-between">
+
+                    <div>
+
+                        <p class="text-sm font-medium text-slate-500">
+                            Pegawai Aktif
+                        </p>
+
+                        <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+                            {{ number_format($totalPegawai) }}
+                        </p>
+
+                    </div>
+
+
+                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+
+                        <svg
+                            class="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="1.8">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+
+                    </div>
+
+                </div>
+
+
+                <div class="mt-4 flex items-center gap-2 text-xs text-slate-400">
+
+                    <span class="h-1.5 w-1.5 rounded-full bg-violet-500"></span>
+
+                    Pegawai dengan status aktif
+
+                </div>
+
+            </div>
+
+
+
+            {{-- Menunggu Validasi --}}
+            <div class="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+
+                <div class="flex items-start justify-between">
+
+                    <div>
+
+                        <p class="text-sm font-medium text-slate-500">
+                            Menunggu Validasi
+                        </p>
+
+                        <p class="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+                            {{ number_format($totalPendingValidasi) }}
+                        </p>
+
+                    </div>
+
+
+                    <div class="flex h-10 w-10 items-center justify-center rounded-xl
+                    {{ $totalPendingValidasi > 0
+                        ? 'bg-amber-50 text-amber-600'
+                        : 'bg-slate-50 text-slate-500' }}">
+
+                        <svg
+                            class="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="1.8">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M12 8v4l2.5 2.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+
+                    </div>
+
+                </div>
+
+
+                <div class="mt-4 flex items-center gap-2 text-xs
+                {{ $totalPendingValidasi > 0
+                    ? 'text-amber-600'
+                    : 'text-slate-400' }}">
+
+                    <span class="h-1.5 w-1.5 rounded-full
+                    {{ $totalPendingValidasi > 0
+                        ? 'bg-amber-500'
+                        : 'bg-slate-300' }}"></span>
+
+                    {{ $totalPendingValidasi > 0
+                    ? 'Perlu segera diperiksa'
+                    : 'Tidak ada laporan tertunda' }}
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        {{-- ============================================================
+        PERLU DIPERHATIKAN
+    ============================================================ --}}
+        <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
+
+            {{-- Header --}}
+            <div class="flex flex-col gap-3 border-b border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+
+                <div class="flex items-start gap-3">
+
+                    <div class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl
+                    {{ $adaNotifikasi
+                        ? 'bg-amber-50 text-amber-600'
+                        : 'bg-slate-50 text-slate-400' }}">
+
+                        <svg
+                            class="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="1.8">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M10.3 4.2a2 2 0 0 1 3.4 0l7 12.1A2 2 0 0 1 19 19.3H5a2 2 0 0 1-1.7-3l7-12.1ZM12 9v4M12 16.5h.01" />
+                        </svg>
+
+                    </div>
+
+
+                    <div>
+
+                        <h2 class="text-base font-semibold text-slate-900">
+                            Perlu Diperhatikan
+                        </h2>
+
+                        <p class="mt-0.5 text-sm text-slate-500">
+                            Beberapa hal membutuhkan perhatian Anda.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                @if($adaNotifikasi)
+
+                <span class="inline-flex w-fit items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                    {{ $jumlahPeringatan }} hal perlu dicek
+                </span>
+
+                @else
+
+                <span class="inline-flex w-fit items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    Semua aman
+                </span>
+
+                @endif
+
+            </div>
+
+
+
+            {{-- Notification Content --}}
+            @if($adaNotifikasi)
+
+            <div class="divide-y divide-slate-100">
+
+
+                {{-- ====================================================
+                    DANA KRITIS
+                ===================================================== --}}
+                @if($totalProyekKritis > 0)
 
                 <a
                     href="{{ route('proyek.index') }}"
-                    class="group rounded-2xl border border-red-100 bg-red-50/70 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-red-200 hover:bg-red-50 hover:shadow-lg hover:shadow-red-100/50">
+                    class="group flex items-center gap-4 bg-red-50/40 px-6 py-4 transition hover:bg-red-50">
 
-                    <div class="flex items-start justify-between gap-4">
+                    <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 ring-4 ring-red-50"></span>
 
-                        <div>
 
-                            <div
-                                class="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-red-100 text-red-600">
+                    <div class="min-w-0 flex-1">
 
-                                <svg
-                                    class="h-4 w-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24">
+                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
 
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            <span class="text-sm font-semibold text-red-800">
+                                {{ number_format($totalProyekKritis) }} proyek
+                            </span>
 
-                                </svg>
-
-                            </div>
-
-                            <p
-                                class="text-[13px] font-semibold tracking-[-0.005em] text-red-950">
-                                Kas Proyek Menipis
-                            </p>
-
-                            <p class="mt-1 text-[11px] leading-5 text-red-800">
-                                {{ $totalProyekKritis }} proyek berada di bawah batas aman kas.
-                            </p>
+                            <span class="text-sm text-red-700">
+                                membutuhkan perhatian dana
+                            </span>
 
                         </div>
 
-                        <svg
-                            class="mt-1 h-4 w-4 text-red-500 transition-transform group-hover:translate-x-1"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24">
 
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M9 5l7 7-7 7" />
-
-                        </svg>
+                        <p class="mt-1 text-xs text-red-600/80">
+                            Dana kritis, kas negatif, atau penggunaan RAB telah mencapai batas kritis.
+                        </p>
 
                     </div>
 
+
+                    <span class="shrink-0 text-xs font-semibold text-red-600 transition group-hover:translate-x-0.5">
+                        Lihat proyek →
+                    </span>
+
                 </a>
 
-            @endif
+                @endif
 
 
-            {{-- Employees --}}
-            @if(isset($totalPegawaiTanpaAkun) && $totalPegawaiTanpaAkun > 0)
+
+                {{-- ====================================================
+                    DANA MENIPIS
+                ===================================================== --}}
+                @if($totalProyekDanaMenipis > 0)
+
+                <a
+                    href="{{ route('proyek.index') }}"
+                    class="group flex items-center gap-4 bg-amber-50/40 px-6 py-4 transition hover:bg-amber-50">
+
+                    <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500 ring-4 ring-amber-50"></span>
+
+
+                    <div class="min-w-0 flex-1">
+
+                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+
+                            <span class="text-sm font-semibold text-slate-800">
+                                {{ number_format($totalProyekDanaMenipis) }} proyek
+                            </span>
+
+                            <span class="text-sm text-slate-600">
+                                memiliki dana yang mulai menipis
+                            </span>
+
+                        </div>
+
+
+                        <p class="mt-1 text-xs text-amber-700/80">
+                            Pertimbangkan pengajuan termin berikutnya kepada client.
+                        </p>
+
+                    </div>
+
+
+                    <span class="shrink-0 text-xs font-semibold text-amber-600 transition group-hover:translate-x-0.5">
+                        Lihat proyek →
+                    </span>
+
+                </a>
+
+                @endif
+
+
+
+                {{-- ====================================================
+                    ABSENSI
+                ===================================================== --}}
+                @if($totalPendingValidasi > 0)
+
+                <a
+                    href="{{ route('admin.absensi.index') }}"
+                    class="group flex items-center gap-4 px-6 py-4 transition hover:bg-amber-50/40">
+
+                    <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500 ring-4 ring-amber-50"></span>
+
+
+                    <div class="min-w-0 flex-1">
+
+                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+
+                            <span class="text-sm font-semibold text-slate-800">
+                                {{ number_format($totalPendingValidasi) }} laporan absensi
+                            </span>
+
+                            <span class="text-sm text-slate-500">
+                                menunggu validasi
+                            </span>
+
+                        </div>
+
+
+                        <p class="mt-1 text-xs text-slate-400">
+                            Periksa laporan sebelum disetujui.
+                        </p>
+
+                    </div>
+
+
+                    <span class="shrink-0 text-xs font-semibold text-amber-600 transition group-hover:translate-x-0.5">
+                        Periksa →
+                    </span>
+
+                </a>
+
+                @endif
+
+
+
+                {{-- ====================================================
+                    PEGAWAI TANPA AKUN
+                ===================================================== --}}
+                @if($totalPegawaiTanpaAkun > 0)
 
                 <a
                     href="{{ route('pegawai.index') }}"
-                    class="group rounded-2xl border border-blue-100 bg-blue-50/70 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50 hover:shadow-lg hover:shadow-blue-100/50">
+                    class="group flex items-center gap-4 px-6 py-4 transition hover:bg-blue-50/40">
 
-                    <div class="flex items-start justify-between gap-4">
+                    <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500 ring-4 ring-blue-50"></span>
 
-                        <div>
 
-                            <div
-                                class="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                    <div class="min-w-0 flex-1">
 
-                                <svg
-                                    class="h-4 w-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24">
+                        <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
 
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            <span class="text-sm font-semibold text-slate-800">
+                                {{ number_format($totalPegawaiTanpaAkun) }} pegawai
+                            </span>
 
-                                </svg>
-
-                            </div>
-
-                            <p
-                                class="text-[13px] font-semibold tracking-[-0.005em] text-blue-950">
-                                Akun Belum Lengkap
-                            </p>
-
-                            <p class="mt-1 text-[11px] leading-5 text-blue-800">
-                                {{ $totalPegawaiTanpaAkun }} pegawai belum memiliki akun sistem.
-                            </p>
+                            <span class="text-sm text-slate-500">
+                                belum memiliki akun
+                            </span>
 
                         </div>
 
-                        <svg
-                            class="mt-1 h-4 w-4 text-blue-500 transition-transform group-hover:translate-x-1"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24">
 
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M9 5l7 7-7 7" />
-
-                        </svg>
+                        <p class="mt-1 text-xs text-slate-400">
+                            Buat akun jika pegawai tersebut membutuhkan akses sistem.
+                        </p>
 
                     </div>
+
+
+                    <span class="shrink-0 text-xs font-semibold text-blue-600 transition group-hover:translate-x-0.5">
+                        Kelola →
+                    </span>
 
                 </a>
 
-            @endif
-
-        </div>
-
-    </section>
-
-@endif
-
-
-{{-- =========================================================
-    KPI CARDS
-========================================================== --}}
-
-<section class="grid grid-cols-1 gap-4 md:grid-cols-3">
-
-    {{-- Completed --}}
-    <div
-        class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
-
-        <div
-            class="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-blue-50">
-        </div>
-
-        <div class="relative flex items-start justify-between">
-
-            <div>
-
-                <p
-                    class="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400">
-                    Proyek Selesai
-                </p>
-
-                <div class="mt-2 flex items-baseline gap-2">
-
-                    <h3
-                        class="text-[32px] font-semibold leading-none tracking-[-0.04em] text-slate-900 tabular-nums">
-                        {{ $totalProyekSelesai }}
-                    </h3>
-
-                    @isset($trendProyekSelesai)
-
-                        <span
-                            class="text-[11px] font-medium {{ $trendProyekSelesai >= 0 ? 'text-emerald-600' : 'text-red-500' }}">
-
-                            {{ $trendProyekSelesai >= 0 ? '+' : '' }}{{ $trendProyekSelesai }}
-
-                        </span>
-
-                    @endisset
-
-                </div>
-
-                <p class="mt-2 text-[11px] leading-5 text-slate-400">
-                    Total proyek yang telah selesai
-                </p>
+                @endif
 
             </div>
 
-            <div
-                class="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
 
-                <svg
-                    class="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24">
+            @else
 
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            {{-- Empty State --}}
+            <div class="flex flex-col items-center justify-center px-6 py-10 text-center">
 
-                </svg>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    {{-- Active --}}
-    <div
-        class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
-
-        <div
-            class="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-indigo-50">
-        </div>
-
-        <div class="relative flex items-start justify-between">
-
-            <div>
-
-                <p
-                    class="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400">
-                    Proyek Aktif
-                </p>
-
-                <div class="mt-2 flex items-baseline gap-2">
-
-                    <h3
-                        class="text-[32px] font-semibold leading-none tracking-[-0.04em] text-slate-900 tabular-nums">
-                        {{ $totalProyekAktif }}
-                    </h3>
-
-                    @isset($trendProyekAktif)
-
-                        <span
-                            class="text-[11px] font-medium {{ $trendProyekAktif >= 0 ? 'text-emerald-600' : 'text-red-500' }}">
-
-                            {{ $trendProyekAktif >= 0 ? '+' : '' }}{{ $trendProyekAktif }}
-
-                        </span>
-
-                    @endisset
-
-                </div>
-
-                <p class="mt-2 text-[11px] leading-5 text-slate-400">
-                    Proyek yang sedang berjalan
-                </p>
-
-            </div>
-
-            <div
-                class="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 transition-colors group-hover:bg-indigo-600 group-hover:text-white">
-
-                <svg
-                    class="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24">
-
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-
-                </svg>
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-    {{-- Employees --}}
-    <div
-        class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
-
-        <div
-            class="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-emerald-50">
-        </div>
-
-        <div class="relative flex items-start justify-between">
-
-            <div>
-
-                <p
-                    class="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400">
-                    Total Pegawai
-                </p>
-
-                <div class="mt-2 flex items-baseline gap-2">
-
-                    <h3
-                        class="text-[32px] font-semibold leading-none tracking-[-0.04em] text-slate-900 tabular-nums">
-                        {{ $totalPegawai }}
-                    </h3>
-
-                    <span class="text-[11px] font-medium text-slate-400">
-                        Orang
-                    </span>
-
-                </div>
-
-                <p class="mt-2 text-[11px] leading-5 text-slate-400">
-                    Pegawai yang terdaftar
-                </p>
-
-            </div>
-
-            <div
-                class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-600 group-hover:text-white">
-
-                <svg
-                    class="h-5 w-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24">
-
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2a5 5 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-
-                </svg>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</section>
-
-
-{{-- =========================================================
-    PROJECT HEALTH
-========================================================== --}}
-
-<section
-    class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-
-    {{-- Header --}}
-    <div
-        class="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between lg:px-7">
-
-        <div>
-
-            <div class="flex items-center gap-2.5">
-
-                <div
-                    class="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
 
                     <svg
-                        class="h-4 w-4"
+                        class="h-6 w-6"
                         fill="none"
+                        viewBox="0 0 24 24"
                         stroke="currentColor"
-                        viewBox="0 0 24 24">
-
+                        stroke-width="1.8">
                         <path
                             stroke-linecap="round"
                             stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M9 19v-6a2 2 0 012-2h2a2 2 0 012 2v6m4 0V5a2 2 0 00-2-2h-3a2 2 0 00-2 2v14m-4 0V9a2 2 0 00-2-2H5a2 2 0 00-2 2v10" />
-
+                            d="m5 12 4 4L19 6" />
                     </svg>
 
                 </div>
 
-                <h2
-                    class="text-[14px] font-semibold tracking-[-0.01em] text-slate-900">
-                    Kesehatan Proyek Aktif
-                </h2>
+
+                <h3 class="mt-3 text-sm font-semibold text-slate-800">
+                    Tidak ada hal yang perlu diperhatikan
+                </h3>
+
+
+                <p class="mt-1 max-w-md text-xs text-slate-400">
+                    Semua laporan, kondisi proyek, dan data pegawai saat ini dalam kondisi baik.
+                </p>
 
             </div>
 
-            <p class="mt-1.5 text-[11px] leading-5 text-slate-500">
-                Ringkasan kondisi keuangan dan progress proyek yang sedang berjalan.
-            </p>
+            @endif
 
-        </div>
-
-        <a
-            href="{{ route('proyek.index') }}"
-            class="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-600 transition hover:text-blue-700">
-
-            Lihat semua proyek
-
-            <svg
-                class="h-3.5 w-3.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24">
-
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M5 12h14m-6-6l6 6-6 6" />
-
-            </svg>
-
-        </a>
-
-    </div>
+        </section>
 
 
-    {{-- Project Cards --}}
-    <div class="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3 lg:p-6">
 
-        @forelse($proyekKesehatan as $proyek)
+        {{-- ============================================================
+        KESEHATAN PROYEK
+    ============================================================ --}}
+        <section>
 
-            <a
-                href="{{ route('proyek.keuangan', $proyek->id) }}"
-                class="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl hover:shadow-slate-200/60">
+            <div class="mb-4 flex items-end justify-between gap-4">
 
-                {{-- Image --}}
-                <div class="relative h-40 overflow-hidden bg-slate-100">
+                <div>
 
-                    @if(!empty($proyek->gambar))
+                    <h2 class="text-lg font-semibold tracking-tight text-slate-900">
+                        Kesehatan Proyek
+                    </h2>
 
-                        <img
-                            src="{{ asset('storage/' . $proyek->gambar) }}"
-                            alt="{{ $proyek->nama_proyek }}"
-                            class="h-full w-full object-cover transition duration-700 group-hover:scale-105">
-
-                    @else
-
-                        <div
-                            class="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-50">
-
-                            <svg
-                                class="h-9 w-9 text-slate-300"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24">
-
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="1.5"
-                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h-2m2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1" />
-
-                            </svg>
-
-                        </div>
-
-                    @endif
-
-                    <div
-                        class="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent">
-                    </div>
-
-
-                    {{-- Health --}}
-                    <div class="absolute right-3 top-3">
-
-                        <div
-                            class="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/30 px-2.5 py-1 backdrop-blur-md">
-
-                            <span class="relative flex h-2 w-2">
-
-                                @if($proyek->kas_tersedia <= 5000000)
-
-                                    <span
-                                        class="absolute inline-flex h-full w-full animate-ping rounded-full {{ $proyek->health_dot }} opacity-75">
-                                    </span>
-
-                                @endif
-
-                                <span
-                                    class="relative inline-flex h-2 w-2 rounded-full {{ $proyek->health_dot }}">
-                                </span>
-
-                            </span>
-
-                            <span
-                                class="text-[10px] font-medium text-white">
-                                {{ $proyek->health_status }}
-                            </span>
-
-                        </div>
-
-                    </div>
+                    <p class="mt-1 text-sm text-slate-500">
+                        Ringkasan penggunaan anggaran dan kondisi dana proyek.
+                    </p>
 
                 </div>
 
 
-                {{-- Content --}}
-                <div class="p-5">
+                <a
+                    href="{{ route('proyek.index') }}"
+                    class="hidden text-sm font-medium text-blue-600 transition hover:text-blue-700 sm:block">
+                    Lihat semua proyek →
+                </a>
 
-                    <div class="flex items-start justify-between gap-3">
-
-                        <h3
-                            class="line-clamp-2 text-[13px] font-semibold leading-5 tracking-[-0.005em] text-slate-900 transition-colors group-hover:text-blue-600">
-
-                            {{ $proyek->nama_proyek }}
-
-                        </h3>
-
-                        @if($proyek->persentase_terpakai > 100)
-
-                            <span
-                                class="shrink-0 rounded-full bg-red-50 px-2 py-1 text-[9px] font-semibold text-red-600">
-                                Over Budget
-                            </span>
-
-                        @else
-
-                            <span
-                                class="shrink-0 rounded-full bg-blue-50 px-2 py-1 text-[9px] font-semibold text-blue-600">
-                                Berjalan
-                            </span>
-
-                        @endif
-
-                    </div>
+            </div>
 
 
-                    {{-- Location --}}
-                    <div
-                        class="mt-3 flex items-center gap-1.5 text-[11px] text-slate-500">
 
-                        <svg
-                            class="h-3.5 w-3.5 shrink-0 text-slate-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24">
+            <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
 
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.5"
-                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                @forelse($proyekKesehatan as $proyek)
 
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.5"
-                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                @php
 
-                        </svg>
+                /*
+                |--------------------------------------------------------------------------
+                | Financial Data
+                |--------------------------------------------------------------------------
+                */
 
-                        <span class="truncate">
-                            {{ $proyek->lokasi ?? 'Lokasi belum diatur' }}
-                        </span>
+                $persentase = (float) ($proyek->persentase_pengeluaran ?? 0);
 
-                    </div>
+                $persentaseBar = max(
+                0,
+                min($persentase, 100)
+                );
+
+                $kasTersedia = (float) ($proyek->kas_tersedia ?? 0);
+
+                $anggaran = (float) ($proyek->anggaran ?? 0);
+
+                $totalPengeluaran = (float) ($proyek->total_pengeluaran ?? 0);
+
+                $healthLevel = $proyek->health_level ?? 'neutral';
 
 
-                    {{-- Budget --}}
-                    <div
-                        class="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-500">
+                /*
+                |--------------------------------------------------------------------------
+                | Color berdasarkan Health Level
+                |--------------------------------------------------------------------------
+                */
 
-                        <svg
-                            class="h-3.5 w-3.5 shrink-0 text-slate-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24">
+                switch ($healthLevel) {
 
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="1.5"
-                                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                case 'danger':
 
-                        </svg>
+                $progressClass = 'bg-red-500';
+                $textClass = 'text-red-600';
+                $badgeClass = 'bg-red-50 text-red-700';
+                $dotClass = 'bg-red-500';
 
-                        <span>
-                            RAB:
-                            <strong class="font-medium text-slate-700">
-                                Rp {{ number_format($proyek->anggaran, 0, ',', '.') }}
-                            </strong>
-                        </span>
-
-                    </div>
+                break;
 
 
-                    <div class="my-4 border-t border-slate-100"></div>
+                case 'warning':
+
+                $progressClass = 'bg-amber-500';
+                $textClass = 'text-amber-600';
+                $badgeClass = 'bg-amber-50 text-amber-700';
+                $dotClass = 'bg-amber-500';
+
+                break;
 
 
-                    {{-- Cash --}}
-                    <div class="flex items-end justify-between">
+                case 'safe':
 
-                        <div>
+                $progressClass = 'bg-emerald-500';
+                $textClass = 'text-emerald-600';
+                $badgeClass = 'bg-emerald-50 text-emerald-700';
+                $dotClass = 'bg-emerald-500';
 
-                            <p
-                                class="text-[9px] font-medium uppercase tracking-[0.08em] text-slate-400">
-                                Kas Tersedia
-                            </p>
+                break;
 
-                            <div class="mt-1 flex items-baseline gap-1">
 
-                                <span
-                                    class="text-[11px] font-medium {{ $proyek->kas_tersedia < 0 ? 'text-red-500' : 'text-slate-400' }}">
+                default:
 
-                                    {{ $proyek->kas_tersedia < 0 ? '-' : '' }}Rp
+                $progressClass = 'bg-slate-400';
+                $textClass = 'text-slate-500';
+                $badgeClass = 'bg-slate-100 text-slate-600';
+                $dotClass = 'bg-slate-400';
 
-                                </span>
+                break;
+                }
 
-                                <span
-                                    class="text-[18px] font-semibold tracking-[-0.025em] tabular-nums {{ $proyek->kas_tersedia < 0 ? 'text-red-600' : 'text-slate-900' }}">
+                @endphp
 
-                                    {{ number_format(abs($proyek->kas_tersedia), 0, ',', '.') }}
 
+
+                {{-- ====================================================
+                    PROJECT CARD
+                ===================================================== --}}
+                <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+
+                    <a
+                        href="{{ route('proyek.show', ['proyek' => $proyek->id]) }}">
+                        {{-- Project Image --}}
+                        <div class="relative h-24 overflow-hidden">
+
+                            @if($proyek->gambar)
+
+                            <img
+                                src="{{ asset('storage/' . $proyek->gambar) }}"
+                                alt="{{ $proyek->nama_proyek }}"
+                                class="h-full w-full object-cover">
+
+                            @else
+
+                            <div class="h-full w-full bg-slate-100"></div>
+
+                            @endif
+
+
+                            <div class="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-slate-950/10 to-transparent"></div>
+
+
+                            <div class="absolute bottom-3 left-4 right-4 flex items-end justify-between gap-3">
+
+                                <div class="min-w-0">
+
+                                    <h3 class="truncate text-sm font-semibold text-white">
+                                        {{ $proyek->nama_proyek }}
+                                    </h3>
+
+                                    <p class="mt-0.5 truncate text-xs text-white/75">
+                                        {{ $proyek->lokasi }}
+                                    </p>
+
+                                </div>
+
+
+                                <span class="shrink-0 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-slate-700">
+                                    Berjalan
                                 </span>
 
                             </div>
@@ -877,367 +788,403 @@
                         </div>
 
 
-                        <div class="text-right">
 
-                            <p
-                                class="text-[9px] font-medium uppercase tracking-[0.08em] text-slate-400">
-                                Terpakai
-                            </p>
+                        {{-- Project Content --}}
+                        <div class="p-5">
 
-                            <p
-                                class="mt-1 text-[13px] font-semibold tabular-nums {{ $proyek->health_color }}">
-                                {{ number_format($proyek->persentase_terpakai, 0) }}%
-                            </p>
 
-                        </div>
+                            {{-- Health --}}
+                            <div class="flex items-center justify-between gap-3">
 
-                    </div>
+                                <div class="flex items-center gap-2">
 
+                                    <span class="h-2 w-2 rounded-full {{ $dotClass }}"></span>
 
-                    {{-- Progress --}}
-                    <div
-                        class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-
-                        <div
-                            class="h-full rounded-full transition-all duration-700 {{ $proyek->persentase_terpakai > 100 ? 'bg-red-500' : $proyek->health_dot }}"
-                            style="width: {{ min($proyek->persentase_terpakai, 100) }}%;">
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </a>
-
-        @empty
-
-            <div class="col-span-full py-12 text-center">
-
-                <div
-                    class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100">
-
-                    <svg
-                        class="h-6 w-6 text-slate-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24">
-
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="1.5"
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h-2m2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1" />
-
-                    </svg>
-
-                </div>
-
-                <p class="text-[13px] font-medium text-slate-500">
-                    Belum ada proyek aktif
-                </p>
-
-                <p class="mt-1 text-[11px] text-slate-400">
-                    Proyek yang sedang berjalan akan muncul di sini.
-                </p>
-
-            </div>
-
-        @endforelse
-
-    </div>
-
-
-    {{-- Footer --}}
-    <div
-        class="border-t border-slate-100 px-6 py-4 text-center">
-
-        <a
-            href="{{ route('proyek.index') }}"
-            class="inline-flex items-center gap-2 rounded-xl bg-slate-50 px-4 py-2.5 text-[11px] font-medium text-slate-700 transition hover:bg-slate-100">
-
-            Lihat Semua Proyek
-
-            <svg
-                class="h-3.5 w-3.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24">
-
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M5 12h14m-6-6l6 6-6 6" />
-
-            </svg>
-
-        </a>
-
-    </div>
-
-</section>
-
-
-{{-- =========================================================
-    LOWER SECTION
-========================================================== --}}
-
-<section class="grid grid-cols-1 gap-5 lg:grid-cols-3">
-
-    {{-- Employees --}}
-    <div
-        class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm lg:col-span-2">
-
-        <div
-            class="flex items-center justify-between border-b border-slate-100 px-6 py-5">
-
-            <div>
-
-                <h2
-                    class="text-[14px] font-semibold tracking-[-0.01em] text-slate-900">
-                    Pegawai Terbaru
-                </h2>
-
-                <p class="mt-1 text-[11px] text-slate-500">
-                    Staf operasional dan tukang yang terdaftar.
-                </p>
-
-            </div>
-
-            <a
-                href="{{ route('pegawai.index') }}"
-                class="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 hover:text-blue-700">
-
-                Lihat Semua
-
-                <svg
-                    class="h-3.5 w-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24">
-
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M5 12h14m-6-6l6 6-6 6" />
-
-                </svg>
-
-            </a>
-
-        </div>
-
-
-        <div class="overflow-x-auto">
-
-            <table class="w-full">
-
-                <thead>
-
-                    <tr class="border-b border-slate-100 bg-slate-50/60">
-
-                        <th
-                            class="px-6 py-3 text-left text-[9px] font-medium uppercase tracking-[0.08em] text-slate-400">
-                            Pegawai
-                        </th>
-
-                        <th
-                            class="px-6 py-3 text-left text-[9px] font-medium uppercase tracking-[0.08em] text-slate-400">
-                            Jabatan
-                        </th>
-
-                        <th
-                            class="px-6 py-3 text-left text-[9px] font-medium uppercase tracking-[0.08em] text-slate-400">
-                            Telepon
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody class="divide-y divide-slate-100">
-
-                    @forelse($pegawais as $pegawai)
-
-                        <tr class="group transition hover:bg-slate-50/70">
-
-                            <td class="px-6 py-3.5">
-
-                                <div class="flex items-center gap-3">
-
-                                    <div
-                                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-[11px] font-semibold text-slate-600 transition group-hover:bg-blue-50 group-hover:text-blue-600">
-
-                                        {{ strtoupper(substr($pegawai->nama ?? 'P', 0, 1)) }}
-
-                                    </div>
-
-                                    <span
-                                        class="text-[12px] font-medium tracking-[-0.005em] text-slate-800">
-
-                                        {{ $pegawai->nama }}
-
+                                    <span class="text-xs font-semibold uppercase tracking-wide {{ $textClass }}">
+                                        {{ $proyek->health_status }}
                                     </span>
 
                                 </div>
 
-                            </td>
 
+                                @if($persentase > 100)
 
-                            <td class="px-6 py-3.5">
-
-                                <span
-                                    class="inline-flex rounded-lg px-2.5 py-1 text-[9px] font-medium
-                                    {{ strtolower($pegawai->jabatan->nama_jabatan ?? '') == 'mandor'
-                                        ? 'bg-blue-50 text-blue-700'
-                                        : 'bg-slate-100 text-slate-600' }}">
-
-                                    {{ $pegawai->jabatan->nama_jabatan ?? 'Belum Diatur' }}
-
+                                <span class="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-bold text-red-700">
+                                    Over Budget
                                 </span>
 
-                            </td>
+                                @else
+
+                                <span class="rounded-full px-2.5 py-1 text-[10px] font-semibold {{ $badgeClass }}">
+                                    {{ number_format($persentase, 1) }}%
+                                </span>
+
+                                @endif
+
+                            </div>
 
 
-                            <td
-                                class="px-6 py-3.5 text-[11px] font-normal tabular-nums text-slate-500">
 
-                                {{ $pegawai->no_telp ?? '-' }}
+                            {{-- Financial Numbers --}}
+                            <div class="mt-5 grid grid-cols-2 gap-4">
 
-                            </td>
+                                <div>
 
-                        </tr>
+                                    <p class="text-xs text-slate-400">
+                                        Dana Tersedia
+                                    </p>
 
-                    @empty
+                                    <p class="mt-1 text-sm font-semibold
+                                    {{ $kasTersedia < 0
+                                        ? 'text-red-600'
+                                        : 'text-slate-800' }}">
+                                        Rp {{ number_format($kasTersedia, 0, ',', '.') }}
+                                    </p>
 
-                        <tr>
-
-                            <td
-                                colspan="3"
-                                class="px-6 py-12 text-center">
-
-                                <p class="text-[12px] font-medium text-slate-400">
-                                    Belum ada data pegawai.
-                                </p>
-
-                            </td>
-
-                        </tr>
-
-                    @endforelse
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-    </div>
+                                </div>
 
 
-    {{-- Activity --}}
-    <div
-        class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+                                <div class="text-right">
 
-        <div
-            class="border-b border-slate-100 px-6 py-5">
+                                    <p class="text-xs text-slate-400">
+                                        Terpakai
+                                    </p>
 
-            <h2
-                class="text-[14px] font-semibold tracking-[-0.01em] text-slate-900">
-                Aktivitas Terbaru
-            </h2>
+                                    <p class="mt-1 text-sm font-semibold text-slate-800">
+                                        Rp {{ number_format($totalPengeluaran, 0, ',', '.') }}
+                                    </p>
 
-            <p class="mt-1 text-[11px] text-slate-500">
-                Aktivitas terakhir di dalam sistem.
-            </p>
+                                </div>
 
-        </div>
+                            </div>
 
 
-        <div class="p-6">
 
-            @forelse(($recentActivities ?? []) as $activity)
+                            {{-- Progress --}}
+                            <div class="mt-5">
 
-                <div
-                    class="relative flex gap-3 pb-5 last:pb-0">
+                                <div class="mb-2 flex items-center justify-between">
 
-                    {{-- Timeline --}}
-                    <div class="relative flex flex-col items-center">
-
-                        <span
-                            class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500 ring-4 ring-blue-50">
-                        </span>
-
-                        @unless($loop->last)
-
-                            <span
-                                class="absolute top-4 h-full w-px bg-slate-100">
-                            </span>
-
-                        @endunless
-
-                    </div>
+                                    <span class="text-xs font-medium text-slate-500">
+                                        Penggunaan RAB
+                                    </span>
 
 
-                    <div class="min-w-0">
+                                    <span class="text-xs font-semibold {{ $textClass }}">
+                                        {{ number_format($persentase, 1) }}%
+                                    </span>
 
-                        <p
-                            class="text-[11px] font-normal leading-5 text-slate-700">
+                                </div>
 
-                            {{ $activity->deskripsi ?? $activity['deskripsi'] ?? '-' }}
 
-                        </p>
+                                <div class="h-2 w-full overflow-hidden rounded-full bg-slate-100">
 
-                        <p
-                            class="mt-1 text-[9px] font-medium text-slate-400">
+                                    <div
+                                        class="h-full rounded-full {{ $progressClass }} transition-all duration-700"
+                                        style="width: {{ $persentaseBar }}%;"></div>
 
-                            {{ \Carbon\Carbon::parse(
-                                $activity->created_at ?? $activity['created_at']
-                            )->locale('id')->diffForHumans() }}
+                                </div>
 
-                        </p>
+                            </div>
 
-                    </div>
+                            {{-- RAB --}}
+                            <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
 
-                </div>
+                                <span class="text-xs text-slate-400">
+                                    RAB Proyek
+                                </span>
 
-            @empty
 
-                <div class="py-8 text-center">
+                                <span class="text-sm font-semibold text-slate-700">
+                                    Rp {{ number_format($anggaran, 0, ',', '.') }}
+                                </span>
 
-                    <div
-                        class="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
+                            </div>
+
+                        </div>
+                    </a>
+                </article>
+
+
+                @empty
+
+                <div class="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+
+                    <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
 
                         <svg
-                            class="h-5 w-5 text-slate-400"
+                            class="h-6 w-6"
                             fill="none"
+                            viewBox="0 0 24 24"
                             stroke="currentColor"
-                            viewBox="0 0 24 24">
-
+                            stroke-width="1.8">
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                stroke-width="1.5"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a3 3 0 003 3h0a3 3 0 003-3M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-
+                                d="M3 21h18M5 21V7l7-4 7 4v14" />
                         </svg>
 
                     </div>
 
-                    <p class="text-[11px] font-medium text-slate-400">
-                        Belum ada aktivitas.
+
+                    <h3 class="mt-3 text-sm font-semibold text-slate-800">
+                        Belum ada proyek aktif
+                    </h3>
+
+
+                    <p class="mt-1 text-xs text-slate-400">
+                        Proyek dengan status "Berjalan" akan muncul di sini.
                     </p>
 
                 </div>
 
-            @endforelse
+                @endforelse
 
-        </div>
+            </div>
+
+        </section>
+
+
+
+        {{-- ============================================================
+        PEGAWAI & AKTIVITAS
+    ============================================================ --}}
+        <section class="grid grid-cols-1 gap-5 xl:grid-cols-5">
+
+
+            {{-- Pegawai --}}
+            <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm xl:col-span-3">
+
+                <div class="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+
+                    <div>
+
+                        <h2 class="text-base font-semibold text-slate-900">
+                            Pegawai Terbaru
+                        </h2>
+
+                        <p class="mt-1 text-xs text-slate-400">
+                            Data pegawai yang terakhir ditambahkan.
+                        </p>
+
+                    </div>
+
+
+                    <a
+                        href="{{ route('pegawai.index') }}"
+                        class="text-xs font-semibold text-blue-600 hover:text-blue-700">
+                        Lihat semua →
+                    </a>
+
+                </div>
+
+
+
+                <div class="overflow-x-auto">
+
+                    <table class="w-full min-w-[520px]">
+
+                        <thead>
+
+                            <tr class="border-b border-slate-100">
+
+                                <th class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                                    Pegawai
+                                </th>
+
+                                <th class="px-6 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                                    Jabatan
+                                </th>
+
+                                <th class="px-6 py-3 text-right text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                                    Status
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody class="divide-y divide-slate-100">
+
+                            @forelse($pegawais as $pegawai)
+
+                            <tr class="transition hover:bg-slate-50/70">
+
+                                <td class="px-6 py-4">
+
+                                    <div class="flex items-center gap-3">
+
+                                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
+                                            {{ strtoupper(substr($pegawai->nama, 0, 1)) }}
+                                        </div>
+
+
+                                        <div>
+
+                                            <p class="text-sm font-medium text-slate-800">
+                                                {{ $pegawai->nama }}
+                                            </p>
+
+
+                                            @if($pegawai->no_telp)
+
+                                            <p class="mt-0.5 text-xs text-slate-400">
+                                                {{ $pegawai->no_telp }}
+                                            </p>
+
+                                            @endif
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+
+                                <td class="px-6 py-4">
+
+                                    <span class="text-sm text-slate-600">
+                                        {{ $pegawai->jabatan->nama_jabatan ?? '-' }}
+                                    </span>
+
+                                </td>
+
+
+                                <td class="px-6 py-4 text-right">
+
+                                    @if($pegawai->status === 'aktif')
+
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+
+                                        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+
+                                        Aktif
+
+                                    </span>
+
+                                    @else
+
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400">
+
+                                        <span class="h-1.5 w-1.5 rounded-full bg-slate-300"></span>
+
+                                        {{ ucfirst($pegawai->status) }}
+
+                                    </span>
+
+                                    @endif
+
+                                </td>
+
+                            </tr>
+
+                            @empty
+
+                            <tr>
+
+                                <td
+                                    colspan="3"
+                                    class="px-6 py-10 text-center text-sm text-slate-400">
+                                    Belum ada data pegawai.
+                                </td>
+
+                            </tr>
+
+                            @endforelse
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+
+
+            {{-- Aktivitas --}}
+            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
+
+                <div class="border-b border-slate-100 px-6 py-5">
+
+                    <h2 class="text-base font-semibold text-slate-900">
+                        Aktivitas Terbaru
+                    </h2>
+
+                    <p class="mt-1 text-xs text-slate-400">
+                        Aktivitas sistem terbaru.
+                    </p>
+
+                </div>
+
+
+                @if($recentActivities->isNotEmpty())
+
+                <div class="divide-y divide-slate-100">
+
+                    @foreach($recentActivities as $activity)
+
+                    <div class="flex gap-3 px-6 py-4">
+
+                        <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500"></span>
+
+                        <div>
+
+                            <p class="text-sm text-slate-700">
+                                {{ $activity->description }}
+                            </p>
+
+                            <p class="mt-1 text-xs text-slate-400">
+                                {{ $activity->created_at }}
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    @endforeach
+
+                </div>
+
+                @else
+
+                <div class="flex min-h-[220px] flex-col items-center justify-center px-6 text-center">
+
+                    <div class="flex h-11 w-11 items-center justify-center rounded-full bg-slate-50 text-slate-400">
+
+                        <svg
+                            class="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="1.8">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M12 8v4l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+
+                    </div>
+
+
+                    <p class="mt-3 text-sm font-medium text-slate-600">
+                        Belum ada aktivitas
+                    </p>
+
+
+                    <p class="mt-1 max-w-xs text-xs leading-5 text-slate-400">
+                        Riwayat aktivitas sistem akan muncul setelah fitur activity log selesai dibuat.
+                    </p>
+
+                </div>
+
+                @endif
+
+            </div>
+
+        </section>
 
     </div>
 
-</section>
-
-@endsection
+    @endsection

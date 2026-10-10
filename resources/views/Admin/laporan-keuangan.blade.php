@@ -4,707 +4,964 @@
 
 @section('content')
 
-{{-- =========================================================
-    HERO — MANAJEMEN DANA PROYEK
-========================================================= --}}
-<section
-    class="relative isolate overflow-hidden rounded-[30px] bg-slate-950 text-white shadow-xl shadow-slate-200/50 mb-6">
+@php
 
-    {{-- Background Project Image --}}
-    @if($proyek->gambar)
-    <div
-        class="absolute inset-0 -z-30 bg-cover bg-center opacity-[0.24]"
-        style="background-image: url('{{ asset('storage/' . $proyek->gambar) }}');"></div>
-    @else
-    <div class="absolute inset-0 -z-30 bg-slate-950"></div>
-    @endif
+$isAdmin = auth()->check()
+    && in_array(auth()->user()->role, ['admin', 'super_admin'], true);
 
-    {{-- Main Gradient --}}
-    <div
-        class="absolute inset-0 -z-20 bg-gradient-to-br from-slate-950 via-slate-950/[0.96] to-blue-950/[0.92]"></div>
+$isSuperAdmin = auth()->check()
+    && auth()->user()->role === 'super_admin';
 
-    {{-- Financial Green Glow --}}
-    <div
-        class="absolute -right-24 -top-24 -z-10 h-80 w-80 rounded-full bg-emerald-500/10 blur-3xl"></div>
 
-    <div
-        class="absolute -bottom-32 left-1/3 -z-10 h-80 w-80 rounded-full bg-blue-500/10 blur-3xl"></div>
+/*
+|--------------------------------------------------------------------------
+| STATUS KAS
+|--------------------------------------------------------------------------
+| Status ditentukan berdasarkan kondisi kas tersedia.
+|
+| >= 10.000.000  : Aman
+| >= 5.000.000   : Terbatas
+| > 0            : Menipis
+| <= 0           : Defisit
+|--------------------------------------------------------------------------
+*/
 
-    {{-- Subtle Grid --}}
-    <div
-        class="absolute inset-0 -z-10 opacity-[0.035]"
-        style="
-            background-image:
-                linear-gradient(rgba(255,255,255,.8) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,.8) 1px, transparent 1px);
-            background-size: 32px 32px;
-        "></div>
+if ($kasTersedia <= 0) {
 
-    {{-- =====================================================
-        CONTENT
-    ====================================================== --}}
-    <div class="relative px-6 py-7 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
+    $statusText = 'Defisit';
 
-        {{-- TOP NAVIGATION --}}
-        <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+    $statusColor = 'text-rose-600';
 
-            {{-- Back --}}
-            <a
-                href="{{ route('proyek.show', $proyek->id) }}"
-                class="group inline-flex items-center gap-2.5 text-[11px] font-medium text-slate-300 transition-colors hover:text-white">
-                <span
-                    class="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] backdrop-blur-md transition-all group-hover:bg-white/[0.10]">
-                    <svg
-                        class="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-0.5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24">
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="1.8"
-                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                </span>
+    $statusDotColor = 'bg-rose-500';
 
-                Kembali ke Detail Proyek
-            </a>
+    $statusBgColor = 'bg-rose-50';
 
-            {{-- Page Label --}}
-            <div
-                class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 backdrop-blur-md">
-                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+    $statusBorderColor = 'border-rose-100';
 
-                <span
-                    class="text-[9px] font-medium uppercase tracking-[0.18em] text-slate-300">
-                    Manajemen Keuangan
-                </span>
-            </div>
+} elseif ($kasTersedia < 5000000) {
 
+    $statusText = 'Kas Menipis';
+
+    $statusColor = 'text-amber-600';
+
+    $statusDotColor = 'bg-amber-500';
+
+    $statusBgColor = 'bg-amber-50';
+
+    $statusBorderColor = 'border-amber-100';
+
+} elseif ($kasTersedia < 10000000) {
+
+    $statusText = 'Terbatas';
+
+    $statusColor = 'text-blue-600';
+
+    $statusDotColor = 'bg-blue-500';
+
+    $statusBgColor = 'bg-blue-50';
+
+    $statusBorderColor = 'border-blue-100';
+
+} else {
+
+    $statusText = 'Aman';
+
+    $statusColor = 'text-emerald-600';
+
+    $statusDotColor = 'bg-emerald-500';
+
+    $statusBgColor = 'bg-emerald-50';
+
+    $statusBorderColor = 'border-emerald-100';
+
+}
+
+@endphp
+
+
+<div class="space-y-6">
+
+
+    {{-- =========================================================
+        PAGE HEADER / BANNER
+    ========================================================== --}}
+    <section
+        class="relative isolate overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
+        <div
+            class="absolute inset-0 -z-20 bg-gradient-to-br from-white via-white to-slate-50">
+        </div>
+
+        <div
+            class="absolute inset-0 -z-10 opacity-[0.018]"
+            style="
+                background-image:
+                    linear-gradient(rgba(15,23,42,.8) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(15,23,42,.8) 1px, transparent 1px);
+                background-size: 32px 32px;
+            ">
+        </div>
+
+        <div
+            class="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-emerald-100/40 blur-3xl">
         </div>
 
 
-        {{-- =====================================================
-            TITLE
-        ====================================================== --}}
-        <div class="max-w-4xl">
-
-            <div class="flex flex-wrap items-center gap-3 mb-3">
-
-                <span
-                    class="inline-flex items-center gap-2 rounded-full border border-emerald-300/10 bg-emerald-400/[0.08] px-3 py-1 text-[9px] font-medium uppercase tracking-[0.16em] text-emerald-200">
-                    <svg
-                        class="h-3 w-3"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.7"
-                        viewBox="0 0 24 24">
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M12 8c-3.314 0-6 1.343-6 3s2.686 3 6 3 6-1.343 6-3-2.686-3-6-3Z" />
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M6 11v3c0 1.657 2.686 3 6 3s6-1.343 6-3v-3" />
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M6 14v3c0 1.657 2.686 3 6 3s6-1.343 6-3v-3" />
-                    </svg>
-
-                    Keuangan Proyek
-                </span>
-
-            </div>
-
-            <h1
-                class="text-[30px] font-semibold leading-[1.08] tracking-[-0.035em] text-white sm:text-[34px] lg:text-[38px]">
-                Manajemen Dana
-            </h1>
-
-            <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-
-                <p class="flex items-center text-[12px] text-slate-300 sm:text-[13px]">
-                    <svg
-                        class="mr-1.5 h-4 w-4 shrink-0 text-slate-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24">
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="1.7"
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="1.7"
-                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-
-                    {{ $proyek->lokasi }}
-                </p>
-
-                <span class="hidden h-1 w-1 rounded-full bg-slate-700 sm:block"></span>
-
-                <p class="text-[12px] font-medium text-slate-400 sm:text-[13px]">
-                    {{ $proyek->nama_proyek }}
-                </p>
-
-            </div>
-
-        </div>
+        <div class="relative px-6 py-7 sm:px-8 sm:py-8">
 
 
-        {{-- =====================================================
-            FINANCIAL METRICS
-        ====================================================== --}}
-        <div class="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
-
-            {{-- TOTAL PEMASUKAN --}}
+            {{-- =====================================================
+                TOP
+            ====================================================== --}}
             <div
-                class="rounded-2xl border border-white/10 bg-white/[0.065] p-4 backdrop-blur-md transition duration-300 hover:bg-white/[0.09]">
-                <div class="flex items-center justify-between">
+                class="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
 
-                    <p
-                        class="text-[9px] font-medium uppercase tracking-[0.13em] text-slate-400">
-                        Total Termin Masuk
-                    </p>
 
-                    <div
-                        class="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-400/10 bg-emerald-400/[0.08]">
+                {{-- HEADING --}}
+                <div class="min-w-0">
+
+
+                    {{-- BACK --}}
+                    <a
+                        href="{{ route('proyek.show', $proyek->id) }}"
+                        class="mb-5 inline-flex items-center gap-2 text-xs font-medium text-slate-400 transition hover:text-slate-700">
+
                         <svg
-                            class="h-3.5 w-3.5 text-emerald-300"
+                            class="h-4 w-4"
                             fill="none"
                             stroke="currentColor"
-                            stroke-width="1.7"
                             viewBox="0 0 24 24">
+
                             <path
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
-                                d="M12 5v14m7-7H5" />
+                                stroke-width="1.8"
+                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+
                         </svg>
+
+                        Kembali ke Detail Proyek
+
+                    </a>
+
+
+                    {{-- EYEBROW --}}
+                    <div class="mb-3 flex items-center gap-2.5">
+
+                        <span
+                            class="h-2 w-2 rounded-full bg-emerald-500">
+                        </span>
+
+                        <span
+                            class="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+
+                            Keuangan & Arus Kas Proyek
+
+                        </span>
+
+                    </div>
+
+
+                    {{-- HEADING --}}
+                    <h1
+                        class="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+
+                        Manajemen Dana
+
+                    </h1>
+
+
+                    {{-- DESCRIPTION --}}
+                    <p
+                        class="mt-2 max-w-2xl text-sm leading-6 text-slate-500 sm:text-[15px]">
+
+                        Pantau pemasukan, pengeluaran, kasbon, dan pembayaran
+                        upah dalam satu ruang kerja keuangan proyek.
+
+                    </p>
+
+
+                    {{-- PROJECT --}}
+                    <div
+                        class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-400">
+
+                        <span class="font-medium text-slate-600">
+                            {{ $proyek->nama_proyek }}
+                        </span>
+
+                        <span
+                            class="hidden h-1 w-1 rounded-full bg-slate-300 sm:block">
+                        </span>
+
+                        <span class="inline-flex items-center gap-1.5">
+
+                            <svg
+                                class="h-3.5 w-3.5 text-slate-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24">
+
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.8"
+                                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.8"
+                                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+
+                            </svg>
+
+                            {{ $proyek->lokasi }}
+
+                        </span>
+
                     </div>
 
                 </div>
 
-                <p
-                    class="mt-3 text-[19px] font-semibold tracking-[-0.03em] text-emerald-300">
-                    Rp {{ number_format($totalPemasukan, 0, ',', '.') }}
-                </p>
 
-                <p class="mt-1 text-[10px] text-slate-500">
-                    Dana yang telah diterima dari klien
-                </p>
-            </div>
-
-
-            {{-- TOTAL PENGELUARAN --}}
-            <div
-                class="rounded-2xl border border-white/10 bg-white/[0.065] p-4 backdrop-blur-md transition duration-300 hover:bg-white/[0.09]">
-                <div class="flex items-center justify-between">
-
-                    <p
-                        class="text-[9px] font-medium uppercase tracking-[0.13em] text-slate-400">
-                        Total Pengeluaran
-                    </p>
-
-                    <div
-                        class="flex h-7 w-7 items-center justify-center rounded-lg border border-white/10 bg-white/[0.06]">
-                        <svg
-                            class="h-3.5 w-3.5 text-slate-300"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.7"
-                            viewBox="0 0 24 24">
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M5 12h14" />
-                        </svg>
-                    </div>
-
-                </div>
-
-                <p
-                    class="mt-3 text-[19px] font-semibold tracking-[-0.03em] text-white">
-                    Rp {{ number_format($totalPengeluaran ?? ($totalPemasukan - $kasTersedia), 0, ',', '.') }}
-                </p>
-
-                <p class="mt-1 text-[10px] text-slate-500">
-                    Material, operasional, upah & kasbon
-                </p>
-            </div>
-
-
-            {{-- KAS TERSEDIA --}}
-            <div
-                class="rounded-2xl border border-white/10 bg-white/[0.065] p-4 backdrop-blur-md transition duration-300 hover:bg-white/[0.09]">
-
-                <div class="flex items-center justify-between gap-3">
-
-                    <p
-                        class="text-[9px] font-medium uppercase tracking-[0.13em] text-slate-400">
-                        Dana Kas Tersedia
-                    </p>
+                {{-- PROJECT STATUS --}}
+                <div class="shrink-0">
 
                     <span
-                        class="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[9px] font-medium {{ $statusColor }}">
-                        {{ $statusText }}
+                        class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-600">
+
+                        <span
+                            class="h-1.5 w-1.5 rounded-full
+                            {{ $proyek->status === 'Berjalan'
+                                ? 'bg-emerald-500'
+                                : ($proyek->status === 'Akan Dimulai'
+                                    ? 'bg-blue-500'
+                                    : 'bg-slate-400') }}">
+                        </span>
+
+                        {{ $proyek->status }}
+
                     </span>
 
                 </div>
 
-                <p
-                    class="mt-3 text-[19px] font-semibold tracking-[-0.03em] {{ $kasTersedia < 0 ? 'text-rose-300' : 'text-emerald-300' }}">
-                    {{ $kasTersedia < 0 ? '-' : '' }}Rp {{ number_format(abs($kasTersedia), 0, ',', '.') }}
-                </p>
-
-                <div class="mt-3">
-
-                    <div class="mb-1 flex items-center justify-between">
-                        <span class="text-[9px] text-slate-500">
-                            Pemakaian dana
-                        </span>
-
-                        <span class="text-[9px] font-medium text-slate-400">
-                            {{ number_format($persentaseKasTerpakai, 1, ',', '.') }}%
-                        </span>
-                    </div>
-
-                    <div class="h-1 overflow-hidden rounded-full bg-white/10">
-                        <div
-                            class="{{ $progressColor }} h-1 rounded-full transition-all duration-500"
-                            style="width: {{ $persentaseKasTerpakai > 100 ? 100 : $persentaseKasTerpakai }}%;"></div>
-                    </div>
-
-                </div>
-
             </div>
 
-        </div>
+
+            {{-- =====================================================
+                FINANCIAL SUMMARY
+            ====================================================== --}}
+            <div class="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
 
 
-        {{-- =====================================================
-            ACTION BUTTONS
-        ====================================================== --}}
-        @if(auth()->check() && auth()->user()->role === 'super_admin')
-
-        <div
-            class="mt-6 flex flex-wrap items-center gap-2 border-t border-white/10 pt-5">
-
-            <span class="mr-1 text-[9px] font-medium uppercase tracking-[0.13em] text-slate-500">
-                Aksi Keuangan
-            </span>
-
-            <div class="flex flex-wrap items-center gap-2">
-
-                {{-- Termin Klien --}}
-                <button
-                    type="button"
-                    onclick="toggleModal('modalCatatPemasukan')"
-                    class="inline-flex items-center gap-2 rounded-xl
-               bg-emerald-500 px-3.5 py-2.5
-               text-[11px] font-semibold text-white
-               shadow-lg shadow-emerald-950/20
-               transition-all duration-200
-               hover:bg-emerald-400 hover:-translate-y-0.5
-               active:translate-y-0">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                            d="M12 6v12m6-6H6" />
-                    </svg>
-                    Termin Klien
-                </button>
-
-                {{-- Biaya Lapangan --}}
-                <button
-                    type="button"
-                    onclick="toggleModal('modalCatatPengeluaran')"
-                    class="inline-flex items-center gap-2 rounded-xl
-               border border-white/15
-               bg-white/10 px-3.5 py-2.5
-               text-[11px] font-semibold text-white
-               backdrop-blur-sm
-               transition-all duration-200
-               hover:bg-white/15 hover:border-white/25
-               hover:-translate-y-0.5">
-                    <svg class="h-4 w-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                            d="M12 6v12m6-6H6" />
-                    </svg>
-                    Biaya Lapangan
-                </button>
-
-                {{-- Kasbon --}}
-                <button
-                    type="button"
-                    onclick="toggleModal('modalCatatKasbon')"
-                    class="inline-flex items-center gap-2 rounded-xl
-               border border-white/15
-               bg-white/10 px-3.5 py-2.5
-               text-[11px] font-semibold text-white
-               backdrop-blur-sm
-               transition-all duration-200
-               hover:bg-amber-500/15
-               hover:border-amber-400/30
-               hover:-translate-y-0.5">
-                    <svg class="h-4 w-4 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                            d="M12 6v12m6-6H6" />
-                    </svg>
-                    Catat Kasbon
-                </button>
-
-                {{-- Bayar Upah --}}
-                <button
-                    type="button"
-                    onclick="toggleModal('modalGaji')"
-                    class="inline-flex items-center gap-2 rounded-xl
-               border border-white/15
-               bg-white/10 px-3.5 py-2.5
-               text-[11px] font-semibold text-white
-               backdrop-blur-sm
-               transition-all duration-200
-               hover:bg-blue-500/15
-               hover:border-blue-400/30
-               hover:-translate-y-0.5">
-                    <svg class="h-4 w-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                            d="M12 6v12m6-6H6" />
-                    </svg>
-                    Bayar Upah
-                </button>
-
-                {{-- Rincian Upah --}}
-                <a
-                    href="{{ route('proyek.payroll', $proyek->id) }}"
-                    class="inline-flex items-center gap-2 rounded-xl
-               border border-white/15
-               bg-white/10 px-3.5 py-2.5
-               text-[11px] font-semibold text-white
-               backdrop-blur-sm
-               transition-all duration-200
-               hover:bg-white/15 hover:border-white/25
-               hover:-translate-y-0.5">
-                    <svg class="h-4 w-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"
-                            d="M9 5l7 7-7 7" />
-                    </svg>
-                    Rincian Upah
-                </a>
-
-            </div>
-
-        </div>
-
-        @endif
-
-    </div>
-
-</section>
-
-
-{{-- =========================================================
-    BUKU KAS PROYEK
-========================================================= --}}
-<section
-    class="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6 lg:p-7">
-
-    {{-- HEADER SECTION --}}
-    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-        <div>
-
-            <div class="flex items-center gap-2">
-
+                {{-- TOTAL PEMASUKAN --}}
                 <div
-                    class="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                    <svg
-                        class="h-4 w-4"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.7"
-                        viewBox="0 0 24 24">
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M4 19.5A2.5 2.5 0 016.5 17H20" />
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2Z" />
-                    </svg>
+                    class="rounded-xl border border-slate-200/80 bg-white/90 px-4 py-4 backdrop-blur-sm">
+
+                    <div class="flex items-center justify-between gap-2">
+
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+
+                            Total Pemasukan
+
+                        </p>
+
+                        <span
+                            class="h-2 w-2 rounded-full bg-emerald-500">
+                        </span>
+
+                    </div>
+
+
+                    <p
+                        class="mt-2 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+
+                        Rp {{ number_format($totalPemasukan, 0, ',', '.') }}
+
+                    </p>
+
+
+                    <p class="mt-1 text-xs text-slate-500 sm:text-sm">
+
+                        Dana yang telah diterima
+
+                    </p>
+
                 </div>
 
-                <h2 class="text-[15px] font-semibold tracking-[-0.01em] text-slate-900">
-                    Buku Kas Proyek
-                </h2>
 
-            </div>
+                {{-- TOTAL PENGELUARAN --}}
+                <div
+                    class="rounded-xl border border-slate-200/80 bg-white/90 px-4 py-4 backdrop-blur-sm">
 
-            <p class="mt-1.5 text-[12px] leading-5 text-slate-500">
-                Riwayat pemasukan termin klien dan pengeluaran biaya proyek.
-            </p>
+                    <div class="flex items-center justify-between gap-2">
 
-        </div>
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
 
-        <a
-            href="{{ route('keuangan.pdf', $proyek->id) }}"
-            target="_blank"
-            class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2.5 text-[11px] font-semibold text-white shadow-sm transition-all hover:bg-slate-800">
-            <svg
-                class="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.7"
-                viewBox="0 0 24 24">
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+                            Total Pengeluaran
 
-            Unduh PDF
-        </a>
+                        </p>
 
-    </div>
+                        <span
+                            class="h-2 w-2 rounded-full bg-slate-500">
+                        </span>
+
+                    </div>
 
 
-    @if($transaksi->count() > 0)
+                    <p
+                        class="mt-2 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
 
-    {{-- FILTER --}}
-    <div class="mb-5 flex flex-col gap-3 sm:flex-row">
+                        Rp {{ number_format($totalPengeluaran, 0, ',', '.') }}
 
-        <div class="relative flex-1">
-
-            <div
-                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <svg
-                    class="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24">
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-            </div>
-
-            <input
-                type="text"
-                id="cariTransaksi"
-                onkeyup="filterBukuKas()"
-                placeholder="Cari keterangan transaksi..."
-                class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-4 text-[12px] text-slate-800 placeholder-slate-400 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
-
-        </div>
-
-        <div class="w-full sm:w-48">
-
-            <select
-                id="filterTipeTransaksi"
-                onchange="filterBukuKas()"
-                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[12px] text-slate-700 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10">
-                <option value="">Semua Tipe</option>
-                <option value="pemasukan">Pemasukan</option>
-                <option value="pengeluaran">Pengeluaran</option>
-            </select>
-
-        </div>
-
-    </div>
+                    </p>
 
 
-    {{-- TABLE --}}
-    <div class="overflow-x-auto rounded-2xl border border-slate-200">
+                    <p class="mt-1 text-xs text-slate-500 sm:text-sm">
 
-        <table
-            class="w-full min-w-[650px] border-collapse text-left"
-            id="tabelBukuKas">
+                        Seluruh dana yang telah digunakan
 
-            <thead>
+                    </p>
 
-                <tr class="border-b border-slate-200 bg-slate-50">
-
-                    <th class="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                        Tanggal
-                    </th>
-
-                    <th class="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                        Tipe Transaksi
-                    </th>
-
-                    <th class="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                        Keterangan
-                    </th>
-
-                    <th class="px-4 py-3 text-right text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                        Nominal
-                    </th>
-
-                    <th class="px-4 py-3 text-center text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                        Bukti
-                    </th>
-
-                </tr>
-
-            </thead>
+                </div>
 
 
-            <tbody class="text-[12px] text-slate-700">
+                {{-- =================================================
+                    KAS TERSEDIA
+                ================================================== --}}
+                <div
+                    class="rounded-xl border {{ $statusBorderColor }} bg-white/90 px-4 py-4 backdrop-blur-sm">
 
-                @foreach($transaksi as $item)
+                    <div class="flex items-center justify-between gap-2">
 
-                <tr
-                    class="row-transaksi border-b border-slate-100 transition-colors hover:bg-slate-50/70"
-                    data-tipe="{{ strtolower($item->tipe) }}">
+                        <p
+                            class="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
 
-                    {{-- TANGGAL --}}
-                    <td class="whitespace-nowrap px-4 py-3.5 font-medium text-slate-700">
-                        {{ \Carbon\Carbon::parse($item->tanggal)->format('d/m/Y') }}
-                    </td>
+                            Kas Tersedia
+
+                        </p>
 
 
-                    {{-- TIPE --}}
-                    <td class="px-4 py-3.5">
+                        <span
+                            class="h-2 w-2 rounded-full {{ $statusDotColor }}">
+                        </span>
 
-                        <div class="flex items-center gap-2">
+                    </div>
+
+
+                    <p
+                        class="mt-2 text-xl font-semibold tracking-tight sm:text-2xl
+                        {{ $kasTersedia < 0
+                            ? 'text-rose-600'
+                            : 'text-slate-900' }}">
+
+                        {{ $kasTersedia < 0 ? '-' : '' }}
+
+                        Rp {{ number_format(abs($kasTersedia), 0, ',', '.') }}
+
+                    </p>
+
+
+                    <div
+                        class="mt-2 flex flex-wrap items-center justify-between gap-2">
+
+                        <p class="text-xs text-slate-500">
+
+                            Dana yang masih tersedia
+
+                        </p>
+
+
+                        {{-- STATUS --}}
+                        <span
+                            class="inline-flex items-center gap-1.5 rounded-full {{ $statusBgColor }} px-2.5 py-1 text-xs font-semibold {{ $statusColor }}">
 
                             <span
-                                class="h-1.5 w-1.5 rounded-full {{ $item->tipe == 'Pemasukan' ? 'bg-emerald-500' : 'bg-slate-400' }}"></span>
-
-                            <span class="font-medium text-slate-700">
-
-                                @if($item->tipe == 'Pemasukan')
-                                Termin Klien
-                                @elseif($item->kategori == 'Kasbon Tukang')
-                                Pencairan Kasbon
-                                @elseif($item->kategori == 'Upah Tukang')
-                                Pembayaran Gaji
-                                @else
-                                Biaya Lapangan
-                                @endif
-
+                                class="h-1.5 w-1.5 rounded-full {{ $statusDotColor }}">
                             </span>
+
+                            {{ $statusText }}
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {{-- =====================================================
+                FINANCIAL ACTIONS
+            ====================================================== --}}
+            @if($isSuperAdmin)
+
+            <div
+                class="mt-7 border-t border-slate-100 pt-6">
+
+                <div
+                    class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+
+                    <div>
+
+                        <div class="flex items-center gap-2.5">
+
+                            <span
+                                class="h-2 w-2 rounded-full bg-blue-500">
+                            </span>
+
+                            <h2
+                                class="text-sm font-semibold tracking-tight text-slate-800">
+
+                                Aksi Keuangan
+
+                            </h2>
 
                         </div>
 
-                        <p class="ml-3.5 mt-0.5 text-[10px] text-slate-400">
-                            {{ $item->kategori }}
+                        <p
+                            class="mt-1 text-xs text-slate-500">
+
+                            Catat transaksi dan kelola pembayaran proyek.
+
                         </p>
 
-                    </td>
+                    </div>
 
 
-                    {{-- KETERANGAN --}}
-                    <td class="cell-keterangan min-w-[220px] px-4 py-3.5 text-slate-600">
-                        {{ $item->keterangan }}
-                    </td>
+                    <div class="flex flex-wrap gap-2">
 
 
-                    {{-- NOMINAL --}}
-                    <td class="whitespace-nowrap px-4 py-3.5 text-right">
+                        {{-- TERMIN --}}
+                        <button
+                            type="button"
+                            onclick="bukaModalPemasukan()"
+                            class="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md">
 
-                        <span
-                            class="font-semibold {{ $item->tipe == 'Pemasukan' ? 'text-emerald-600' : 'text-slate-800' }}">
-                            {{ $item->tipe == 'Pengeluaran' ? '-' : '+' }}
-                            Rp {{ number_format($item->nominal, 0, ',', '.') }}
-                        </span>
-
-                    </td>
-
-
-                    {{-- BUKTI --}}
-                    <td class="px-4 py-3.5 text-center">
-
-                        @if($item->bukti_file)
-
-                        <a
-                            href="{{ asset('storage/' . $item->bukti_file) }}"
-                            target="_blank"
-                            class="inline-flex rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
-                            title="Lihat Bukti">
                             <svg
                                 class="h-4 w-4"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24">
+
                                 <path
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                    stroke-width="1.8"
+                                    d="M12 4v16m8-8H4" />
+
                             </svg>
+
+                            Termin Klien
+
+                        </button>
+
+
+                        {{-- BIAYA --}}
+                        <button
+                            type="button"
+                            onclick="bukaModalPengeluaran()"
+                            class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md">
+
+                            <svg
+                                class="h-4 w-4 text-slate-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24">
+
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.8"
+                                    d="M12 4v16m8-8H4" />
+
+                            </svg>
+
+                            Biaya Lapangan
+
+                        </button>
+
+
+                        {{-- KASBON --}}
+                        <button
+                            type="button"
+                            onclick="bukaModalKasbon()"
+                            class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-200 hover:bg-amber-50/40">
+
+                            <svg
+                                class="h-4 w-4 text-amber-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24">
+
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.8"
+                                    d="M12 4v16m8-8H4" />
+
+                            </svg>
+
+                            Catat Kasbon
+
+                        </button>
+
+
+                        {{-- BAYAR UPAH --}}
+                        <button
+                            type="button"
+                            onclick="bukaModalGaji()"
+                            class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50/40">
+
+                            <svg
+                                class="h-4 w-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24">
+
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.8"
+                                    d="M12 4v16m8-8H4" />
+
+                            </svg>
+
+                            Bayar Upah
+
+                        </button>
+
+
+                        {{-- PAYROLL --}}
+                        <a
+                            href="{{ route('proyek.payroll', $proyek->id) }}"
+                            class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 hover:shadow-md">
+
+                            Rincian Upah
+
+                            <svg
+                                class="h-4 w-4 text-slate-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24">
+
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="1.8"
+                                    d="M9 5l7 7-7 7" />
+
+                            </svg>
+
                         </a>
 
-                        @else
+                    </div>
 
-                        <span class="text-slate-300">-</span>
+                </div>
 
-                        @endif
+            </div>
 
-                    </td>
+            @endif
 
-                </tr>
-
-                @endforeach
-
-            </tbody>
-
-        </table>
-
-    </div>
-
-
-    <p
-        id="pesanTransaksiKosong"
-        class="hidden py-8 text-center text-[12px] text-slate-400">
-        Tidak ada transaksi yang cocok dengan pencarian.
-    </p>
-
-
-    @else
-
-    {{-- EMPTY STATE --}}
-    <div class="py-12 text-center">
-
-        <div
-            class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-300">
-            <svg
-                class="h-7 w-7"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                viewBox="0 0 24 24">
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M20 12V8H6a2.5 2.5 0 010-5h12v4" />
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M4 6v13a2 2 0 002 2h12a2 2 0 002-2V8" />
-            </svg>
         </div>
 
-        <p class="text-[13px] font-semibold text-slate-600">
-            Buku Kas Kosong
-        </p>
+    </section>
 
-        <p class="mx-auto mt-1 max-w-md text-[11px] leading-5 text-slate-400">
-            Mulai catat arus kas proyek dengan menggunakan aksi keuangan
-            pada bagian atas halaman.
-        </p>
 
-    </div>
+    {{-- =========================================================
+        BUKU KAS PROYEK
+    ========================================================== --}}
+    <section
+        class="rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-    @endif
 
-</section>
+        {{-- SECTION HEADER --}}
+        <div
+            class="flex flex-col gap-4 border-b border-slate-100 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+
+            <div>
+
+                <div class="flex items-center gap-2.5">
+
+                    <span
+                        class="h-2 w-2 rounded-full bg-blue-500">
+                    </span>
+
+                    <h2
+                        class="text-base font-semibold tracking-tight text-slate-800 sm:text-lg">
+
+                        Buku Kas Proyek
+
+                    </h2>
+
+                </div>
+
+                <p
+                    class="mt-1.5 text-sm leading-6 text-slate-500">
+
+                    Riwayat pemasukan dan pengeluaran yang tercatat
+                    dalam arus kas proyek.
+
+                </p>
+
+            </div>
+
+
+            <a
+                href="{{ route('keuangan.pdf', $proyek->id) }}"
+                target="_blank"
+                class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md">
+
+                <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24">
+
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.8"
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+
+                </svg>
+
+                Unduh PDF
+
+            </a>
+
+        </div>
+
+
+        <div class="p-6">
+
+
+            @if($keuangans->count())
+
+
+            {{-- FILTER --}}
+            <div
+                class="mb-5 flex flex-col gap-3 sm:flex-row">
+
+                <div class="relative flex-1">
+
+                    <div
+                        class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+
+                        <svg
+                            class="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24">
+
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.8"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0a7 7 0 0114 0z" />
+
+                        </svg>
+
+                    </div>
+
+
+                    <input
+                        type="text"
+                        id="cariTransaksi"
+                        onkeyup="filterBukuKas()"
+                        placeholder="Cari keterangan transaksi..."
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 pl-9 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100">
+
+                </div>
+
+
+                <select
+                    id="filterTipeTransaksi"
+                    onchange="filterBukuKas()"
+                    class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm text-slate-700 outline-none transition focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100 sm:w-48">
+
+                    <option value="">
+                        Semua Tipe
+                    </option>
+
+                    <option value="pemasukan">
+                        Pemasukan
+                    </option>
+
+                    <option value="pengeluaran">
+                        Pengeluaran
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            {{-- TABLE --}}
+            <div
+                class="overflow-x-auto rounded-2xl border border-slate-200">
+
+                <table
+                    id="tabelBukuKas"
+                    class="w-full min-w-[700px] border-collapse text-left">
+
+                    <thead>
+
+                        <tr class="border-b border-slate-200 bg-slate-50">
+
+                            <th
+                                class="px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+
+                                Tanggal
+
+                            </th>
+
+                            <th
+                                class="px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+
+                                Transaksi
+
+                            </th>
+
+                            <th
+                                class="px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+
+                                Keterangan
+
+                            </th>
+
+                            <th
+                                class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+
+                                Nominal
+
+                            </th>
+
+                            <th
+                                class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+
+                                Bukti
+
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody class="text-sm text-slate-700">
+
+                        @forelse($keuangans as $item)
+
+                        <tr
+                            class="row-transaksi border-b border-slate-100 transition hover:bg-slate-50/70"
+                            data-tipe="{{ strtolower($item->tipe) }}">
+
+                            <td
+                                class="whitespace-nowrap px-4 py-4 font-medium text-slate-600">
+
+                                {{ \Carbon\Carbon::parse($item->tanggal)->format('d M Y') }}
+
+                            </td>
+
+
+                            <td class="px-4 py-4">
+
+                                <div class="flex items-center gap-2.5">
+
+                                    <span
+                                        class="h-2 w-2 shrink-0 rounded-full
+                                        {{ $item->tipe === 'Pemasukan'
+                                            ? 'bg-emerald-500'
+                                            : 'bg-slate-400' }}">
+                                    </span>
+
+
+                                    <div>
+
+                                        <p
+                                            class="font-semibold text-slate-700">
+
+                                            @if($item->tipe === 'Pemasukan')
+
+                                            Termin Klien
+
+                                            @elseif($item->kategori === 'Kasbon Tukang')
+
+                                            Pencairan Kasbon
+
+                                            @elseif($item->kategori === 'Upah Tukang')
+
+                                            Pembayaran Upah
+
+                                            @else
+
+                                            Biaya Lapangan
+
+                                            @endif
+
+                                        </p>
+
+
+                                        <p
+                                            class="mt-0.5 text-xs text-slate-400">
+
+                                            {{ $item->kategori }}
+
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <td
+                                class="cell-keterangan min-w-[240px] px-4 py-4 text-slate-500">
+
+                                {{ $item->keterangan }}
+
+                            </td>
+
+
+                            <td
+                                class="whitespace-nowrap px-4 py-4 text-right">
+
+                                <span
+                                    class="font-semibold
+                                    {{ $item->tipe === 'Pemasukan'
+                                        ? 'text-emerald-600'
+                                        : 'text-slate-800' }}">
+
+                                    {{ $item->tipe === 'Pemasukan' ? '+' : '-' }}
+
+                                    Rp {{ number_format($item->nominal, 0, ',', '.') }}
+
+                                </span>
+
+                            </td>
+
+
+                            <td
+                                class="px-4 py-4 text-center">
+
+                                @if($item->bukti_file)
+
+                                <a
+                                    href="{{ asset('storage/' . $item->bukti_file) }}"
+                                    target="_blank"
+                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-blue-50 hover:text-blue-600"
+                                    title="Lihat bukti">
+
+                                    <svg
+                                        class="h-4 w-4"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24">
+
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="1.8"
+                                            d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+
+                                    </svg>
+
+                                </a>
+
+                                @else
+
+                                <span class="text-slate-300">
+                                    —
+                                </span>
+
+                                @endif
+
+                            </td>
+
+                        </tr>
+
+                        @endforeach
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <p
+                id="pesanTransaksiKosong"
+                class="hidden py-10 text-center text-sm text-slate-400">
+
+                Tidak ada transaksi yang cocok dengan pencarian.
+
+            </p>
+
+
+            @else
+
+
+            {{-- EMPTY STATE --}}
+            <div
+                class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 px-6 py-16 text-center">
+
+                <div
+                    class="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
+
+                    <svg
+                        class="h-7 w-7 text-slate-300"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24">
+
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.5"
+                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+
+                    </svg>
+
+                </div>
+
+
+                <h3
+                    class="mt-5 text-base font-semibold text-slate-800">
+
+                    Buku Kas Kosong
+
+                </h3>
+
+
+                <p
+                    class="mt-2 max-w-sm text-sm leading-6 text-slate-500">
+
+                    Belum ada transaksi keuangan yang tercatat
+                    untuk proyek ini.
+
+                </p>
+
+            </div>
+
+            @endif
+
+        </div>
+
+    </section>
+
+</div>
+
+
+
+{{-- =========================================================
+    MODALS
+========================================================= --}}
+@if($isSuperAdmin)
 
 
 {{-- =========================================================
@@ -712,473 +969,110 @@
 ========================================================= --}}
 <div
     id="modalCatatKasbon"
-    class="fixed inset-0 z-50 hidden flex h-full w-full items-center justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm">
-
-    <div class="my-8 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-
-        <h3 class="mb-5 text-[17px] font-semibold tracking-tight text-slate-900">
-            Catat Kasbon Pekerja
-        </h3>
-
-        <form action="{{ route('kasbon.store', $proyek->id) }}" method="POST">
-            @csrf
-
-            <div class="mb-4">
-
-                <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                    Pilih Pekerja
-                </label>
-
-                <select
-                    name="pegawai_id"
-                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10"
-                    required>
-
-                    @foreach($proyek->pegawais as $p)
-
-                    <option value="{{ $p->id }}">
-                        {{ $p->nama }}
-                        ({{ $p->jabatan->nama_jabatan ?? 'Pekerja' }})
-                    </option>
-
-                    @endforeach
-
-                </select>
-
-            </div>
-
-
-            <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-
-                <div>
-
-                    <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                        Nominal (Rp)
-                    </label>
-
-                    <div class="relative">
-
-                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">
-                            Rp
-                        </span>
-
-                        <input
-                            type="number"
-                            name="nominal"
-                            class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10"
-                            placeholder="50.000"
-                            required>
-
-                    </div>
-
-                </div>
-
-
-                <div>
-
-                    <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                        Tanggal
-                    </label>
-
-                    <input
-                        type="date"
-                        name="tanggal"
-                        value="{{ date('Y-m-d') }}"
-                        class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10"
-                        required>
-
-                </div>
-
-            </div>
-
-
-            <div class="mb-6">
-
-                <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                    Keterangan
-                </label>
-
-                <input
-                    type="text"
-                    name="keterangan"
-                    class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10"
-                    placeholder="Misal: Beli kebutuhan dapur">
-
-            </div>
-
-
-            <div class="flex gap-3">
-
-                <button
-                    type="button"
-                    onclick="toggleModal('modalCatatKasbon')"
-                    class="flex-1 rounded-xl bg-slate-100 py-2.5 text-[12px] font-semibold text-slate-700 transition-colors hover:bg-slate-200">
-                    Batal
-                </button>
-
-                <button
-                    type="submit"
-                    class="flex-1 rounded-xl bg-amber-500 py-2.5 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-amber-600">
-                    Simpan Kasbon
-                </button>
-
-            </div>
-
-        </form>
-
-    </div>
-
-</div>
-
-
-{{-- =========================================================
-    MODAL — CATAT PEMASUKAN
-========================================================= --}}
-<div
-    id="modalCatatPemasukan"
-    class="fixed inset-0 z-50 hidden flex h-full w-full items-center justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm">
-
-    <div class="my-8 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-
-        <h3 class="mb-5 text-[17px] font-semibold tracking-tight text-slate-900">
-            Catat Termin Klien
-        </h3>
-
-        <form
-            action="{{ route('proyek.keuangan.store', $proyek->id) }}"
-            method="POST"
-            enctype="multipart/form-data">
-
-            @csrf
-
-            <input type="hidden" name="tipe" value="Pemasukan">
-            <input type="hidden" name="kategori" value="Termin Pembayaran">
-
-
-            <div class="mb-4">
-
-                <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                    Nominal Termin (Rp)
-                </label>
-
-                <div class="relative">
-
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">
-                        Rp
-                    </span>
-
-                    <input
-                        type="number"
-                        name="nominal"
-                        class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
-                        placeholder="50.000.000"
-                        required>
-
-                </div>
-
-            </div>
-
-
-            <div class="mb-4">
-
-                <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                    Tanggal Pembayaran
-                </label>
-
-                <input
-                    type="date"
-                    name="tanggal"
-                    value="{{ date('Y-m-d') }}"
-                    class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
-                    required>
-
-            </div>
-
-
-            <div class="mb-4">
-
-                <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                    Keterangan / Catatan
-                </label>
-
-                <input
-                    type="text"
-                    name="keterangan"
-                    class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/10"
-                    placeholder="Misal: Termin 1 (30%) dari Bpk. Budi"
-                    required>
-
-            </div>
-
-
-            <div class="mb-6">
-
-                <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                    Bukti Transfer
-                    <span class="normal-case tracking-normal text-slate-400">
-                        (Opsional)
-                    </span>
-                </label>
-
-                <input
-                    type="file"
-                    name="bukti_file"
-                    accept="image/*,.pdf"
-                    class="w-full cursor-pointer text-[11px] text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-emerald-700 hover:file:bg-emerald-100">
-
-            </div>
-
-
-            <div class="flex gap-3">
-
-                <button
-                    type="button"
-                    onclick="toggleModal('modalCatatPemasukan')"
-                    class="flex-1 rounded-xl bg-slate-100 py-2.5 text-[12px] font-semibold text-slate-700 transition-colors hover:bg-slate-200">
-                    Batal
-                </button>
-
-                <button
-                    type="submit"
-                    class="flex-1 rounded-xl bg-emerald-600 py-2.5 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700">
-                    Simpan Pemasukan
-                </button>
-
-            </div>
-
-        </form>
-
-    </div>
-
-</div>
-
-
-{{-- =========================================================
-    MODAL — CATAT PENGELUARAN
-========================================================= --}}
-<div
-    id="modalCatatPengeluaran"
-    class="fixed inset-0 z-50 hidden flex h-full w-full items-center justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm">
-
-    <div class="my-8 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-
-        <h3 class="mb-5 text-[17px] font-semibold tracking-tight text-slate-900">
-            Catat Biaya Lapangan
-        </h3>
-
-        <form
-            action="{{ route('proyek.keuangan.store', $proyek->id) }}"
-            method="POST"
-            enctype="multipart/form-data">
-
-            @csrf
-
-            <input type="hidden" name="tipe" value="Pengeluaran">
-
-
-            <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-
-                <div>
-
-                    <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                        Kategori Biaya
-                    </label>
-
-                    <select
-                        name="kategori"
-                        class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:border-slate-700 focus:ring-2 focus:ring-slate-500/10"
-                        required>
-
-                        <option value="Material & Bahan">
-                            Material & Bahan
-                        </option>
-
-                        <option value="Sewa Alat">
-                            Sewa Alat
-                        </option>
-
-                        <option value="Operasional Lapangan">
-                            Operasional (BBM, Makan)
-                        </option>
-
-                        <option value="Lain-lain">
-                            Lain-lain
-                        </option>
-
-                    </select>
-
-                </div>
-
-
-                <div>
-
-                    <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                        Tanggal
-                    </label>
-
-                    <input
-                        type="date"
-                        name="tanggal"
-                        value="{{ date('Y-m-d') }}"
-                        class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:border-slate-700 focus:ring-2 focus:ring-slate-500/10"
-                        required>
-
-                </div>
-
-            </div>
-
-
-            <div class="mb-4">
-
-                <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                    Nominal (Rp)
-                </label>
-
-                <div class="relative">
-
-                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">
-                        Rp
-                    </span>
-
-                    <input
-                        type="number"
-                        name="nominal"
-                        class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-[14px] font-semibold text-slate-900 outline-none focus:border-slate-700 focus:ring-2 focus:ring-slate-500/10"
-                        placeholder="1.500.000"
-                        required>
-
-                </div>
-
-            </div>
-
-
-            <div class="mb-4">
-
-                <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                    Keterangan / Beli Apa?
-                </label>
-
-                <input
-                    type="text"
-                    name="keterangan"
-                    class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:border-slate-700 focus:ring-2 focus:ring-slate-500/10"
-                    placeholder="Misal: Beli Semen 50 Sak di UD Ema Kencana"
-                    required>
-
-            </div>
-
-
-            <div class="mb-6">
-
-                <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                    Foto Nota / Kwitansi
-                    <span class="normal-case tracking-normal text-slate-400">
-                        (Opsional)
-                    </span>
-                </label>
-
-                <input
-                    type="file"
-                    name="bukti_file"
-                    accept="image/*,.pdf"
-                    class="w-full cursor-pointer text-[11px] text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-[11px] file:font-semibold file:text-slate-700 hover:file:bg-slate-200">
-
-            </div>
-
-
-            <div class="flex gap-3">
-
-                <button
-                    type="button"
-                    onclick="toggleModal('modalCatatPengeluaran')"
-                    class="flex-1 rounded-xl bg-slate-100 py-2.5 text-[12px] font-semibold text-slate-700 transition-colors hover:bg-slate-200">
-                    Batal
-                </button>
-
-                <button
-                    type="submit"
-                    class="flex-1 rounded-xl bg-slate-900 py-2.5 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-slate-800">
-                    Simpan Pengeluaran
-                </button>
-
-            </div>
-
-        </form>
-
-    </div>
-
-</div>
-
-
-{{-- =========================================================
-    MODAL — BAYAR UPAH
-========================================================= --}}
-<div
-    id="modalGaji"
-    class="fixed inset-0 z-50 hidden flex h-full w-full items-center justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm">
+    class="fixed inset-0 z-[999] hidden items-center justify-center p-4 sm:p-6"
+    aria-hidden="true">
 
     <div
-        class="my-8 flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+        class="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
+        onclick="tutupModalKasbon()">
+    </div>
 
-        {{-- HEADER --}}
-        <div class="flex shrink-0 items-center justify-between border-b border-slate-100 bg-slate-50 px-6 py-4">
+
+    <div
+        class="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true">
+
+
+        <div
+            class="flex items-start justify-between gap-5 border-b border-slate-100 bg-slate-50/70 px-6 py-5">
 
             <div>
 
-                <p class="text-[9px] font-medium uppercase tracking-[0.13em] text-blue-500">
-                    Payroll Proyek
-                </p>
+                <div class="flex items-center gap-2.5">
 
-                <h3 class="mt-1 text-[17px] font-semibold tracking-tight text-slate-900">
-                    Hitung & Bayar Upah
-                </h3>
+                    <span
+                        class="h-2 w-2 rounded-full bg-amber-500">
+                    </span>
+
+                    <h3
+                        class="text-lg font-semibold tracking-tight text-slate-800">
+
+                        Catat Kasbon
+
+                    </h3>
+
+                </div>
+
+
+                <p
+                    class="mt-1.5 text-sm leading-5 text-slate-500">
+
+                    Catat pencairan kasbon untuk pekerja proyek.
+
+                </p>
 
             </div>
 
+
             <button
                 type="button"
-                onclick="toggleModal('modalGaji')"
-                class="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-rose-500">
+                onclick="tutupModalKasbon()"
+                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-600">
+
                 <svg
                     class="h-5 w-5"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="1.8"
                     viewBox="0 0 24 24">
+
                     <path
                         stroke-linecap="round"
                         stroke-linejoin="round"
+                        stroke-width="1.8"
                         d="M6 18L18 6M6 6l12 12" />
+
                 </svg>
+
             </button>
 
         </div>
 
 
-        <div class="overflow-y-auto p-6">
+        <form
+            action="{{ route('kasbon.store', $proyek->id) }}"
+            method="POST">
 
-            {{-- TAHAP 1 --}}
-            <form id="formCekGaji" class="mb-6">
+            @csrf
 
-                @csrf
 
-                <div class="mb-4">
+            <div class="space-y-5 p-6">
 
-                    <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                        Pilih Pekerja
+
+                <div>
+
+                    <label
+                        class="mb-2 block text-sm font-semibold text-slate-700">
+
+                        Pekerja
+
+                        <span class="text-rose-500">*</span>
+
                     </label>
 
+
                     <select
-                        id="inputPegawaiGaji"
                         name="pegawai_id"
-                        class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                        required>
+                        required
+                        class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100">
 
                         @foreach($proyek->pegawais as $p)
 
                         <option value="{{ $p->id }}">
+
                             {{ $p->nama }}
-                            ({{ $p->jabatan->nama_jabatan ?? '-' }})
+                            ({{ $p->jabatan->nama_jabatan ?? 'Pekerja' }})
+
                         </option>
 
                         @endforeach
@@ -1188,37 +1082,791 @@
                 </div>
 
 
-                <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+
 
                     <div>
 
-                        <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                            Dari Tanggal
+                        <label
+                            class="mb-2 block text-sm font-semibold text-slate-700">
+
+                            Nominal
+
+                            <span class="text-rose-500">*</span>
+
                         </label>
 
-                        <input
-                            type="date"
-                            id="inputStartGaji"
-                            name="start_date"
-                            class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                            required>
+
+                        <div class="relative">
+
+                            <span
+                                class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-semibold text-slate-400">
+
+                                Rp
+
+                            </span>
+
+
+                            <input
+                                type="number"
+                                name="nominal"
+                                min="1"
+                                required
+                                placeholder="500000"
+                                class="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-3.5 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100">
+
+                        </div>
 
                     </div>
 
 
                     <div>
 
-                        <label class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
-                            Sampai Tanggal
+                        <label
+                            class="mb-2 block text-sm font-semibold text-slate-700">
+
+                            Tanggal
+
+                            <span class="text-rose-500">*</span>
+
                         </label>
+
+
+                        <input
+                            type="date"
+                            name="tanggal"
+                            value="{{ date('Y-m-d') }}"
+                            required
+                            class="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100">
+
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <label
+                        class="mb-2 block text-sm font-semibold text-slate-700">
+
+                        Keterangan
+
+                    </label>
+
+
+                    <input
+                        type="text"
+                        name="keterangan"
+                        placeholder="Contoh: Kebutuhan operasional pekerja"
+                        class="w-full rounded-xl border border-slate-200 py-3 px-3.5 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-amber-400 focus:ring-4 focus:ring-amber-100">
+
+                </div>
+
+
+                <div
+                    class="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
+
+                    <button
+                        type="button"
+                        onclick="tutupModalKasbon()"
+                        class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+
+                        Batal
+
+                    </button>
+
+
+                    <button
+                        type="submit"
+                        class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+
+                        Simpan Kasbon
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+{{-- =========================================================
+    MODAL — PEMASUKAN
+========================================================= --}}
+<div
+    id="modalCatatPemasukan"
+    class="fixed inset-0 z-[999] hidden items-center justify-center p-4 sm:p-6"
+    aria-hidden="true">
+
+    <div
+        class="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
+        onclick="tutupModalPemasukan()">
+    </div>
+
+
+    <div
+        class="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true">
+
+
+        <div
+            class="flex items-start justify-between gap-5 border-b border-slate-100 bg-slate-50/70 px-6 py-5">
+
+            <div>
+
+                <div class="flex items-center gap-2.5">
+
+                    <span
+                        class="h-2 w-2 rounded-full bg-emerald-500">
+                    </span>
+
+
+                    <h3
+                        class="text-lg font-semibold tracking-tight text-slate-800">
+
+                        Catat Termin Klien
+
+                    </h3>
+
+                </div>
+
+
+                <p
+                    class="mt-1.5 text-sm leading-5 text-slate-500">
+
+                    Catat dana yang telah diterima dari klien proyek.
+
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                onclick="tutupModalPemasukan()"
+                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-600">
+
+                <svg
+                    class="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24">
+
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.8"
+                        d="M6 18L18 6M6 6l12 12" />
+
+                </svg>
+
+            </button>
+
+        </div>
+
+
+        <form
+            action="{{ route('proyek.keuangan.store', $proyek->id) }}"
+            method="POST"
+            enctype="multipart/form-data">
+
+            @csrf
+
+
+            <input
+                type="hidden"
+                name="tipe"
+                value="Pemasukan">
+
+
+            <input
+                type="hidden"
+                name="kategori"
+                value="Termin Pembayaran">
+
+
+            <div class="space-y-5 p-6">
+
+
+                <div>
+
+                    <label
+                        class="mb-2 block text-sm font-semibold text-slate-700">
+
+                        Nominal Termin
+
+                        <span class="text-rose-500">*</span>
+
+                    </label>
+
+
+                    <div class="relative">
+
+                        <span
+                            class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-semibold text-slate-400">
+
+                            Rp
+
+                        </span>
+
+
+                        <input
+                            type="number"
+                            name="nominal"
+                            min="1"
+                            required
+                            placeholder="50000000"
+                            class="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-3.5 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <label
+                        class="mb-2 block text-sm font-semibold text-slate-700">
+
+                        Tanggal Pembayaran
+
+                        <span class="text-rose-500">*</span>
+
+                    </label>
+
+
+                    <input
+                        type="date"
+                        name="tanggal"
+                        value="{{ date('Y-m-d') }}"
+                        required
+                        class="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+
+                </div>
+
+
+                <div>
+
+                    <label
+                        class="mb-2 block text-sm font-semibold text-slate-700">
+
+                        Keterangan
+
+                        <span class="text-rose-500">*</span>
+
+                    </label>
+
+
+                    <input
+                        type="text"
+                        name="keterangan"
+                        required
+                        placeholder="Contoh: Termin 1 (30%)"
+                        class="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100">
+
+                </div>
+
+
+                <div>
+
+                    <label
+                        class="mb-2 block text-sm font-semibold text-slate-700">
+
+                        Bukti Transfer
+
+                        <span class="font-normal text-slate-400">
+                            (Opsional)
+                        </span>
+
+                    </label>
+
+
+                    <input
+                        type="file"
+                        name="bukti_file"
+                        accept="image/*,.pdf"
+                        class="w-full cursor-pointer text-xs text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-emerald-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-emerald-700 hover:file:bg-emerald-100">
+
+                </div>
+
+
+                <div
+                    class="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
+
+                    <button
+                        type="button"
+                        onclick="tutupModalPemasukan()"
+                        class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+
+                        Batal
+
+                    </button>
+
+
+                    <button
+                        type="submit"
+                        class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+
+                        Simpan Termin
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+{{-- =========================================================
+    MODAL — PENGELUARAN
+========================================================= --}}
+<div
+    id="modalCatatPengeluaran"
+    class="fixed inset-0 z-[999] hidden items-center justify-center p-4 sm:p-6"
+    aria-hidden="true">
+
+    <div
+        class="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
+        onclick="tutupModalPengeluaran()">
+    </div>
+
+
+    <div
+        class="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true">
+
+
+        <div
+            class="flex items-start justify-between gap-5 border-b border-slate-100 bg-slate-50/70 px-6 py-5">
+
+            <div>
+
+                <div class="flex items-center gap-2.5">
+
+                    <span
+                        class="h-2 w-2 rounded-full bg-slate-500">
+                    </span>
+
+
+                    <h3
+                        class="text-lg font-semibold tracking-tight text-slate-800">
+
+                        Catat Biaya Lapangan
+
+                    </h3>
+
+                </div>
+
+
+                <p
+                    class="mt-1.5 text-sm leading-5 text-slate-500">
+
+                    Catat pengeluaran operasional yang terjadi di lapangan.
+
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                onclick="tutupModalPengeluaran()"
+                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-600">
+
+                <svg
+                    class="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24">
+
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.8"
+                        d="M6 18L18 6M6 6l12 12" />
+
+                </svg>
+
+            </button>
+
+        </div>
+
+
+        <form
+            action="{{ route('proyek.keuangan.store', $proyek->id) }}"
+            method="POST"
+            enctype="multipart/form-data">
+
+            @csrf
+
+
+            <input
+                type="hidden"
+                name="tipe"
+                value="Pengeluaran">
+
+
+            <div class="space-y-5 p-6">
+
+
+                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+
+                    <div>
+
+                        <label
+                            class="mb-2 block text-sm font-semibold text-slate-700">
+
+                            Kategori
+
+                            <span class="text-rose-500">*</span>
+
+                        </label>
+
+
+                        <select
+                            name="kategori"
+                            required
+                            class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100">
+
+                            <option value="Material & Bahan">
+                                Material & Bahan
+                            </option>
+
+                            <option value="Sewa Alat">
+                                Sewa Alat
+                            </option>
+
+                            <option value="Operasional Lapangan">
+                                Operasional (BBM, Makan)
+                            </option>
+
+                            <option value="Lain-lain">
+                                Lain-lain
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div>
+
+                        <label
+                            class="mb-2 block text-sm font-semibold text-slate-700">
+
+                            Tanggal
+
+                            <span class="text-rose-500">*</span>
+
+                        </label>
+
+
+                        <input
+                            type="date"
+                            name="tanggal"
+                            value="{{ date('Y-m-d') }}"
+                            required
+                            class="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100">
+
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <label
+                        class="mb-2 block text-sm font-semibold text-slate-700">
+
+                        Nominal
+
+                        <span class="text-rose-500">*</span>
+
+                    </label>
+
+
+                    <div class="relative">
+
+                        <span
+                            class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-semibold text-slate-400">
+
+                            Rp
+
+                        </span>
+
+
+                        <input
+                            type="number"
+                            name="nominal"
+                            min="1"
+                            required
+                            placeholder="1500000"
+                            class="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-3.5 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100">
+
+                    </div>
+
+                </div>
+
+
+                <div>
+
+                    <label
+                        class="mb-2 block text-sm font-semibold text-slate-700">
+
+                        Keterangan
+
+                        <span class="text-rose-500">*</span>
+
+                    </label>
+
+
+                    <input
+                        type="text"
+                        name="keterangan"
+                        required
+                        placeholder="Contoh: Beli semen 50 sak"
+                        class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100">
+
+                </div>
+
+
+                <div>
+
+                    <label
+                        class="mb-2 block text-sm font-semibold text-slate-700">
+
+                        Foto Nota / Kwitansi
+
+                        <span class="font-normal text-slate-400">
+                            (Opsional)
+                        </span>
+
+                    </label>
+
+
+                    <input
+                        type="file"
+                        name="bukti_file"
+                        accept="image/*,.pdf"
+                        class="w-full cursor-pointer text-xs text-slate-500 file:mr-3 file:rounded-full file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-slate-700 hover:file:bg-slate-200">
+
+                </div>
+
+
+                <div
+                    class="flex items-center justify-end gap-3 border-t border-slate-100 pt-5">
+
+                    <button
+                        type="button"
+                        onclick="tutupModalPengeluaran()"
+                        class="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50">
+
+                        Batal
+
+                    </button>
+
+
+                    <button
+                        type="submit"
+                        class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800">
+
+                        Simpan Pengeluaran
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+
+{{-- =========================================================
+    MODAL — BAYAR UPAH
+========================================================= --}}
+<div
+    id="modalGaji"
+    class="fixed inset-0 z-[999] hidden items-center justify-center p-4 sm:p-6"
+    aria-hidden="true">
+
+
+    <div
+        class="absolute inset-0 bg-slate-950/50 backdrop-blur-sm"
+        onclick="tutupModalGaji()">
+    </div>
+
+
+    <div
+        class="relative z-10 flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true">
+
+
+        {{-- HEADER --}}
+        <div
+            class="flex shrink-0 items-start justify-between gap-5 border-b border-slate-100 bg-slate-50/70 px-6 py-5">
+
+            <div>
+
+                <div class="flex items-center gap-2.5">
+
+                    <span
+                        class="h-2 w-2 rounded-full bg-blue-500">
+                    </span>
+
+
+                    <h3
+                        class="text-lg font-semibold tracking-tight text-slate-800">
+
+                        Hitung & Bayar Upah
+
+                    </h3>
+
+                </div>
+
+
+                <p
+                    class="mt-1.5 text-sm leading-5 text-slate-500">
+
+                    Hitung hak upah berdasarkan kehadiran dan kasbon pekerja.
+
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                onclick="tutupModalGaji()"
+                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-600">
+
+                <svg
+                    class="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24">
+
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.8"
+                        d="M6 18L18 6M6 6l12 12" />
+
+                </svg>
+
+            </button>
+
+        </div>
+
+
+        <div class="min-h-0 flex-1 overflow-y-auto p-6">
+
+
+            {{-- STEP 1 --}}
+            <form
+                id="formCekGaji"
+                class="space-y-5">
+
+                @csrf
+
+
+                <div>
+
+                    <label
+                        class="mb-2 block text-sm font-semibold text-slate-700">
+
+                        Pekerja
+
+                        <span class="text-rose-500">*</span>
+
+                    </label>
+
+
+                    <select
+                        id="inputPegawaiGaji"
+                        name="pegawai_id"
+                        required
+                        class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+
+                        @foreach($proyek->pegawais as $p)
+
+                        <option value="{{ $p->id }}">
+
+                            {{ $p->nama }}
+                            ({{ $p->jabatan->nama_jabatan ?? '-' }})
+
+                        </option>
+
+                        @endforeach
+
+                    </select>
+
+                </div>
+
+
+                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+
+
+                    <div>
+
+                        <label
+                            class="mb-2 block text-sm font-semibold text-slate-700">
+
+                            Dari Tanggal
+
+                            <span class="text-rose-500">*</span>
+
+                        </label>
+
+
+                        <input
+                            type="date"
+                            id="inputStartGaji"
+                            name="start_date"
+                            required
+                            class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+
+                    </div>
+
+
+                    <div>
+
+                        <label
+                            class="mb-2 block text-sm font-semibold text-slate-700">
+
+                            Sampai Tanggal
+
+                            <span class="text-rose-500">*</span>
+
+                        </label>
+
 
                         <input
                             type="date"
                             id="inputEndGaji"
                             name="end_date"
                             value="{{ date('Y-m-d') }}"
-                            class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-[13px] text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                            required>
+                            required
+                            class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
 
                     </div>
 
@@ -1228,79 +1876,121 @@
                 <button
                     type="submit"
                     id="btnCekGaji"
-                    class="flex w-full items-center justify-center rounded-xl bg-slate-900 py-2.5 text-[12px] font-semibold text-white shadow-sm transition-colors hover:bg-slate-800">
+                    class="w-full rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md">
+
                     Tarik Data Kehadiran & Kasbon
+
                 </button>
 
             </form>
 
 
-            {{-- TAHAP 2 --}}
+            {{-- STEP 2 --}}
             <div
                 id="areaHasilGaji"
-                class="mt-2 hidden border-t border-slate-200 pt-6">
-
-                <h4 class="mb-4 text-[13px] font-semibold text-slate-800">
-
-                    Rincian Slip Gaji:
-
-                    <span
-                        id="labelNamaPegawai"
-                        class="text-blue-600"></span>
-
-                </h4>
+                class="mt-7 hidden border-t border-slate-100 pt-6">
 
 
                 <div
-                    class="mb-4 rounded-xl border border-slate-100 bg-slate-50 p-4 text-[13px]">
+                    class="mb-5 flex items-center gap-2.5">
 
-                    <div class="mb-2 flex justify-between">
-                        <span class="text-slate-600">
+                    <span
+                        class="h-2 w-2 rounded-full bg-blue-500">
+                    </span>
+
+
+                    <h4
+                        class="text-sm font-semibold text-slate-800">
+
+                        Rincian Slip Gaji
+
+                    </h4>
+
+                </div>
+
+
+                <div
+                    class="mb-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+
+
+                    <div class="mb-3 flex justify-between gap-4">
+
+                        <span class="text-sm text-slate-500">
                             Hadir Penuh
                         </span>
 
-                        <span class="font-semibold text-slate-800">
-                            <span id="txtHariFull">0</span> Hari
+
+                        <span class="text-sm font-semibold text-slate-800">
+
+                            <span id="txtHariFull">
+                                0
+                            </span>
+
+                            Hari
+
                         </span>
+
                     </div>
 
 
-                    <div class="mb-2 flex justify-between">
-                        <span class="text-slate-600">
+                    <div class="mb-3 flex justify-between gap-4">
+
+                        <span class="text-sm text-slate-500">
                             Setengah Hari
                         </span>
 
-                        <span class="font-semibold text-slate-800">
-                            <span id="txtHariSetengah">0</span> Hari
+
+                        <span class="text-sm font-semibold text-slate-800">
+
+                            <span id="txtHariSetengah">
+                                0
+                            </span>
+
+                            Hari
+
                         </span>
+
                     </div>
 
 
-                    <div class="mb-2 flex justify-between border-t border-slate-200 pt-2">
+                    <div
+                        class="flex justify-between gap-4 border-t border-slate-200 pt-3">
 
-                        <span class="font-semibold text-slate-800">
+                        <span
+                            class="text-sm font-semibold text-slate-700">
+
                             Total Upah Kotor
+
                         </span>
 
+
                         <span
-                            class="text-[14px] font-semibold text-slate-900"
-                            id="txtUpahKotor">
+                            id="txtUpahKotor"
+                            class="text-sm font-semibold text-slate-900">
+
                             Rp 0
+
                         </span>
 
                     </div>
 
 
-                    <div class="mt-2 flex justify-between text-rose-500">
+                    <div
+                        class="mt-3 flex justify-between gap-4 text-rose-600">
 
-                        <span>
+                        <span class="text-sm">
+
                             Potongan Kasbon Lama
+
                         </span>
 
+
                         <span
-                            class="font-semibold"
-                            id="txtPotonganKasbon">
+                            id="txtPotonganKasbon"
+                            class="text-sm font-semibold">
+
                             - Rp 0
+
                         </span>
 
                     </div>
@@ -1315,54 +2005,102 @@
 
                     @csrf
 
-                    <input type="hidden" name="pegawai_id" id="finalPegawaiId">
-                    <input type="hidden" name="start_date" id="finalStartDate">
-                    <input type="hidden" name="end_date" id="finalEndDate">
-                    <input type="hidden" name="estimasi_gaji_sistem" id="finalEstimasiSistem">
-                    <input type="hidden" name="id_absensi" id="finalIdAbsensi">
+
+                    <input
+                        type="hidden"
+                        name="pegawai_id"
+                        id="finalPegawaiId">
 
 
-                    <div class="mb-5 rounded-xl border border-blue-100 bg-blue-50 p-4">
+                    <input
+                        type="hidden"
+                        name="start_date"
+                        id="finalStartDate">
 
-                        <div class="mb-3 flex items-center justify-between gap-4">
 
-                            <span class="text-[10px] font-semibold uppercase tracking-[0.08em] text-blue-800">
-                                Hak Gaji Bersih
-                            </span>
+                    <input
+                        type="hidden"
+                        name="end_date"
+                        id="finalEndDate">
+
+
+                    <input
+                        type="hidden"
+                        name="estimasi_gaji_sistem"
+                        id="finalEstimasiSistem">
+
+
+                    <input
+                        type="hidden"
+                        name="id_absensi"
+                        id="finalIdAbsensi">
+
+
+                    <div
+                        class="mb-5 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
+
+
+                        <div
+                            class="flex items-center justify-between gap-4">
 
                             <span
-                                class="text-xl font-semibold tracking-tight text-blue-700"
-                                id="txtGajiBersih">
+                                class="text-xs font-semibold uppercase tracking-[0.08em] text-blue-700">
+
+                                Hak Gaji Bersih
+
+                            </span>
+
+
+                            <span
+                                id="txtGajiBersih"
+                                class="text-xl font-semibold tracking-tight text-blue-700">
+
                                 Rp 0
+
                             </span>
 
                         </div>
 
 
-                        <div class="mt-4">
+                        <div class="mt-5">
 
                             <label
-                                class="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-700">
+                                class="mb-2 block text-sm font-semibold text-slate-700">
+
                                 Nominal Uang yang Dibayar
+
+                                <span class="text-rose-500">*</span>
+
                             </label>
+
 
                             <div class="relative">
 
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 font-semibold text-slate-400">
+                                <span
+                                    class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-sm font-semibold text-slate-400">
+
                                     Rp
+
                                 </span>
+
 
                                 <input
                                     type="number"
                                     id="inputNominalDibayar"
                                     name="nominal_dibayar"
-                                    class="w-full rounded-xl border border-slate-300 py-2.5 pl-9 pr-3 text-[15px] font-semibold text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
-                                    required>
+                                    min="0"
+                                    required
+                                    class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-3.5 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
 
                             </div>
 
-                            <p class="mt-1.5 text-[10px] leading-4 text-slate-500">
-                                Sistem akan mengkonversi selisih lebih bayar atau kurang bayar menjadi kasbon baru secara otomatis.
+
+                            <p
+                                class="mt-2 text-xs leading-5 text-slate-500">
+
+                                Pembayaran yang melebihi hak gaji akan dicatat
+                                sebagai kasbon baru secara otomatis.
+
                             </p>
 
                         </div>
@@ -1372,8 +2110,10 @@
 
                     <button
                         type="submit"
-                        class="w-full rounded-xl bg-blue-600 py-3 text-[13px] font-semibold text-white shadow-sm transition-colors hover:bg-blue-700">
-                        Konfirmasi & Potong Saldo Kas
+                        class="w-full rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md">
+
+                        Konfirmasi Pembayaran
+
                     </button>
 
                 </form>
@@ -1386,322 +2126,32 @@
 
 </div>
 
+@endif
+
+
 
 {{-- =========================================================
-    SCRIPT
+    PAGE JAVASCRIPT CONFIG
 ========================================================= --}}
+@if($isSuperAdmin)
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
-    // =====================================================
-    // MODAL
-    // =====================================================
-
-    function toggleModal(modalId) {
-
-        const modal = document.getElementById(modalId);
-
-        if (modal) {
-
-            modal.classList.toggle('hidden');
-
-        } else {
-
-            console.error(
-                "Modal dengan ID " + modalId + " tidak ditemukan!"
-            );
-
-        }
-
-    }
-
-
-    // =====================================================
-    // FILTER & SEARCH BUKU KAS
-    // =====================================================
-
-    function filterBukuKas() {
-
-        const searchInput =
-            document.getElementById('cariTransaksi');
-
-        const filterInput =
-            document.getElementById('filterTipeTransaksi');
-
-        if (!searchInput || !filterInput) {
-            return;
-        }
-
-        const keyword =
-            searchInput.value.toLowerCase();
-
-        const tipeFilter =
-            filterInput.value.toLowerCase();
-
-        const rows =
-            document.querySelectorAll(
-                '#tabelBukuKas .row-transaksi'
-            );
-
-        let adaHasil = false;
-
-
-        rows.forEach(row => {
-
-            const keteranganElement =
-                row.querySelector('.cell-keterangan');
-
-            const keterangan =
-                keteranganElement ?
-                keteranganElement.textContent.toLowerCase() :
-                '';
-
-            const tipe =
-                row.getAttribute('data-tipe');
-
-
-            const cocokKeyword =
-                keterangan.includes(keyword);
-
-            const cocokTipe =
-                tipeFilter === '' ||
-                tipe === tipeFilter;
-
-
-            const tampil =
-                cocokKeyword &&
-                cocokTipe;
-
-
-            row.style.display =
-                tampil ? '' : 'none';
-
-
-            if (tampil) {
-                adaHasil = true;
-            }
-
-        });
-
-
-        const pesanKosong =
-            document.getElementById(
-                'pesanTransaksiKosong'
-            );
-
-
-        if (pesanKosong) {
-
-            pesanKosong.classList.toggle(
-                'hidden',
-                adaHasil
-            );
-
-        }
-
-    }
-
-
-    // =====================================================
-    // AJAX — HITUNG GAJI
-    // =====================================================
-
-    const formCekGaji =
-        document.getElementById('formCekGaji');
-
-
-    if (formCekGaji) {
-
-        formCekGaji.addEventListener(
-            'submit',
-            async function(e) {
-
-                e.preventDefault();
-
-
-                const btnCek =
-                    document.getElementById(
-                        'btnCekGaji'
-                    );
-
-                const areaHasil =
-                    document.getElementById(
-                        'areaHasilGaji'
-                    );
-
-
-                const textLama =
-                    btnCek.innerHTML;
-
-
-                btnCek.innerHTML =
-                    'Menghitung...';
-
-                btnCek.disabled = true;
-
-
-                const formData =
-                    new FormData(this);
-
-
-                const proyekId =
-                    "{{ $proyek->id }}";
-
-
-                try {
-
-                    const response =
-                        await fetch(
-                            `/admin/proyek/${proyekId}/keuangan/preview-gaji`, {
-                                method: 'POST',
-                                body: formData,
-                                headers: {
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                }
-                            }
-                        );
-
-
-                    const result =
-                        await response.json();
-
-
-                    if (result.status === 'success') {
-
-                        const data =
-                            result.data;
-
-
-                        const formatRp =
-                            angka =>
-                            new Intl.NumberFormat(
-                                'id-ID'
-                            ).format(angka);
-
-
-                        document.getElementById(
-                                'labelNamaPegawai'
-                            ).innerText =
-                            data.nama_pegawai;
-
-
-                        document.getElementById(
-                                'txtHariFull'
-                            ).innerText =
-                            data.hari_full;
-
-
-                        document.getElementById(
-                                'txtHariSetengah'
-                            ).innerText =
-                            data.hari_setengah;
-
-
-                        document.getElementById(
-                                'txtUpahKotor'
-                            ).innerText =
-                            'Rp ' +
-                            formatRp(
-                                data.total_upah_kotor
-                            );
-
-
-                        document.getElementById(
-                                'txtPotonganKasbon'
-                            ).innerText =
-                            '- Rp ' +
-                            formatRp(
-                                data.total_potongan_kasbon
-                            );
-
-
-                        document.getElementById(
-                                'txtGajiBersih'
-                            ).innerText =
-                            'Rp ' +
-                            formatRp(
-                                data.estimasi_gaji_bersih
-                            );
-
-
-                        document.getElementById(
-                                'inputNominalDibayar'
-                            ).value =
-                            Math.max(
-                                0,
-                                data.estimasi_gaji_bersih
-                            );
-
-
-                        document.getElementById(
-                                'finalPegawaiId'
-                            ).value =
-                            formData.get(
-                                'pegawai_id'
-                            );
-
-
-                        document.getElementById(
-                                'finalStartDate'
-                            ).value =
-                            formData.get(
-                                'start_date'
-                            );
-
-
-                        document.getElementById(
-                                'finalEndDate'
-                            ).value =
-                            formData.get(
-                                'end_date'
-                            );
-
-
-                        document.getElementById(
-                                'finalEstimasiSistem'
-                            ).value =
-                            data.estimasi_gaji_bersih;
-
-
-                        document.getElementById(
-                                'finalIdAbsensi'
-                            ).value =
-                            data.id_absensi;
-
-
-                        areaHasil.classList.remove(
-                            'hidden'
-                        );
-
-                    } else {
-
-                        alert(
-                            result.message ||
-                            'Data tidak dapat dihitung.'
-                        );
-
-                    }
-
-                } catch (error) {
-
-                    alert(
-                        'Gagal mengambil data. Pastikan koneksi aman.'
-                    );
-
-                    console.error(error);
-
-                } finally {
-
-                    btnCek.innerHTML =
-                        textLama;
-
-                    btnCek.disabled =
-                        false;
-
-                }
-
-            }
-        );
-
-    }
+    window.manajemenDanaProyekConfig = {
+        proyekId: @json($proyek->id),
+        previewGajiUrl: @json(
+            url('/admin/proyek/' . $proyek->id . '/keuangan/preview-gaji')
+        ),
+        hasValidationErrors: @json($errors->any()),
+        validationErrors: @json($errors->all()),
+        successMessage: @json(session('success')),
+        errorMessage: @json(session('error')),
+    };
 </script>
+
+<script src="{{ asset('js/manajemen-dana-proyek.js') }}"></script>
+
+@endif
 
 @endsection

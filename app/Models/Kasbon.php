@@ -2,31 +2,49 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\KeuanganProyek;
 
 class Kasbon extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'pegawai_id',
         'proyek_id',
         'tanggal',
         'nominal',
+        'sisa_nominal',
         'keterangan',
-        'status'
+        'status',
     ];
 
-    // Relasi ke Pekerja
-    public function pegawai()
+    protected $casts = [
+        'tanggal' => 'date',
+        'nominal' => 'decimal:2',
+        'sisa_nominal' => 'decimal:2',
+    ];
+
+    public function pegawai(): BelongsTo
     {
-        return $this->belongsTo(Pegawai::class);
+        return $this->belongsTo(
+            Pegawai::class,
+            'pegawai_id'
+        );
     }
 
-    // Relasi ke Proyek
-    public function proyek()
+    public function proyek(): BelongsTo
     {
-        return $this->belongsTo(Proyek::class);
+        return $this->belongsTo(
+            Proyek::class,
+            'proyek_id'
+        );
+    }
+    public function keuangan(): HasOne
+    {
+        return $this->hasOne(
+            KeuanganProyek::class,
+            'kasbon_id'
+        );
     }
 }

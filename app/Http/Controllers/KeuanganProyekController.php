@@ -4,407 +4,1626 @@ namespace App\Http\Controllers;
 
 use App\Models\Absensi;
 use App\Models\Kasbon;
-use App\Models\Proyek;
 use App\Models\KeuanganProyek;
 use App\Models\Pegawai;
+use App\Models\Proyek;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
 
 class KeuanganProyekController extends Controller
 {
-    public function index(Proyek $proyek)
+    /*
+    |--------------------------------------------------------------------------
+    | AUTHORIZATION
+    |--------------------------------------------------------------------------
+    */
+
+    private function authorizeAdmin(): void
     {
-        // 1. Tarik semua transaksi
-        $transaksi = KeuanganProyek::where('proyek_id', $proyek->id)
-            ->orderBy('tanggal', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        // 2. LOGIKA PERHITUNGAN BARU (Berdasarkan Arus Kas Nyata)
-        $totalAnggaran = $proyek->anggaran; // RAB Total
-
-        $totalPengeluaran = KeuanganProyek::where('proyek_id', $proyek->id)
-            ->where('tipe', 'Pengeluaran')
-            ->sum('nominal');
-
-        $totalPemasukan = KeuanganProyek::where('proyek_id', $proyek->id)
-            ->where('tipe', 'Pemasukan')
-            ->sum('nominal');
-
-        // Uang cash nyata yang ada di tangan (Termin Cair - Pengeluaran)
-        $kasTersedia = $totalPemasukan - $totalPengeluaran;
-
-        // Persentase seberapa banyak uang termin yang sudah dibakar/dipakai
-        $persentaseKasTerpakai = 0;
-        if ($totalPemasukan > 0) {
-            $persentaseKasTerpakai = ($totalPengeluaran / $totalPemasukan) * 100;
-        }
-
-        // ==========================================
-        // LOGIKA HYBRID THRESHOLD (Sistem Gabungan)
-        // ==========================================
-        $batasAmanNominal = 5000000; // Rp 5.000.000 (Bisa disesuaikan nanti)
-
-        $progressColor = 'bg-green-500';
-        $statusText = number_format($persentaseKasTerpakai, 1) . '% Terpakai';
-        $statusColor = 'text-green-500';
-
-        if ($kasTersedia < 0) {
-            // Skenario 1: Saldo Minus (Nombok)
-            $progressColor = 'bg-red-600';
-            $statusText = 'Darurat: Proyek Nombok!';
-            $statusColor = 'text-red-600';
-            $persentaseKasTerpakai = 100; // Penuhkan bar jadi merah full
-
-        } elseif ($kasTersedia > 0 && $kasTersedia <= $batasAmanNominal) {
-            // Skenario 2: Kas di bawah batas aman (Walau persentase mungkin baru 50%)
-            $progressColor = 'bg-red-500';
-            $statusText = 'Kritis: Kas < Rp 5 Jt';
-            $statusColor = 'text-red-500';
-        } elseif ($persentaseKasTerpakai >= 90) {
-            // Skenario 3: Uang sudah terpakai lebih dari 90%
-            $progressColor = 'bg-red-500';
-            $statusText = 'Kritis: Dana > 90%';
-            $statusColor = 'text-red-500';
-        } elseif ($persentaseKasTerpakai >= 75) {
-            // Skenario 4: Peringatan kuning (Hati-hati)
-            $progressColor = 'bg-amber-500';
-            $statusText = 'Awas: Dana > 75%';
-            $statusColor = 'text-amber-500';
-        }
-
-        // UBAH NAMA VARIABEL DI COMPACT
-        return view('Admin.laporan-keuangan', compact(
-            'proyek',
-            'transaksi',
-            'totalAnggaran',
-            'totalPengeluaran',
-            'totalPemasukan',
-            'kasTersedia',
-            'persentaseKasTerpakai',
-            'progressColor',
-            'statusText',   // Variabel Baru (Label Cerdas)
-            'statusColor'   // Variabel Baru (Warna Cerdas)
-        ));
+        abort_unless(
+            Auth::check() &&
+                in_array(
+                    Auth::user()->role,
+                    ['admin', 'super_admin'],
+                    true
+                ),
+            403
+        );
     }
 
-    public function store(Request $request, Proyek $proyek)
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDASI PROYEK
+    |--------------------------------------------------------------------------
+    */
+
+    private function ensureProyekAktif(Proyek $proyek): void
     {
-        // 1. Validasi inputan dari form
-        $request->validate([
-            'tipe' => 'required|in:Pemasukan,Pengeluaran',
-            'kategori' => 'required|string',
-            'nominal' => 'required|numeric|min:1',
-            'tanggal' => 'required|date',
-            'keterangan' => 'required|string',
-            'bukti_file' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:2048', // Maksimal file 2MB
-        ]);
-
-        // 2. Siapkan array data yang akan disimpan
-        $data = [
-            'proyek_id' => $proyek->id,
-            'tipe' => $request->tipe,
-            'kategori' => $request->kategori,
-            'nominal' => $request->nominal,
-            'tanggal' => $request->tanggal,
-            'keterangan' => $request->keterangan,
-        ];
-
-        // 3. Proses jika ada file/foto nota yang diupload
-        if ($request->hasFile('bukti_file')) {
-            // File akan disimpan di storage/app/public/bukti_keuangan
-            $path = $request->file('bukti_file')->store('bukti_keuangan', 'public');
-            $data['bukti_file'] = $path;
-        }
-
-        // 4. Simpan ke database
-        KeuanganProyek::create($data);
-
-        // 5. Kembali ke halaman sebelumnya dengan pesan sukses
-        $pesan = $request->tipe == 'Pemasukan' ? 'Termin Klien berhasil dicatat!' : 'Biaya Lapangan berhasil dicatat!';
-        return back()->with('success', $pesan);
+        abort_unless(
+            in_array(
+                $proyek->status,
+                ['Akan Dimulai', 'Berjalan'],
+                true
+            ),
+            422,
+            'Proyek sudah tidak aktif.'
+        );
     }
 
-    // 1. Fungsi untuk Menghitung Gaji (Mengembalikan JSON untuk Modal)
-    public function previewGaji(Request $request, Proyek $proyek)
-    {
-        $request->validate([
-            'pegawai_id' => 'required',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-        ]);
+    /*
+    |--------------------------------------------------------------------------
+    | VALIDASI PERIODE PAYROLL
+    |--------------------------------------------------------------------------
+    */
 
-        $pegawai = Pegawai::with('jabatan')->findOrFail($request->pegawai_id);
-        $gajiHarian = $pegawai->jabatan->gaji_harian;
+    private function validatePayrollPeriod(
+        Proyek $proyek,
+        string $startDate,
+        string $endDate
+    ): void {
+        /*
+        |--------------------------------------------------------------------------
+        | Tanggal awal tidak boleh setelah tanggal akhir
+        |--------------------------------------------------------------------------
+        */
 
-        // Hitung Kehadiran (Hadir & Disetujui)
-        $kehadiran = Absensi::where('pegawai_id', $pegawai->id)
+        if ($startDate > $endDate) {
+            abort(
+                422,
+                'Tanggal awal periode tidak boleh setelah tanggal akhir.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Periode tidak boleh sebelum proyek dimulai
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $proyek->tanggal_mulai &&
+            $startDate < $proyek->tanggal_mulai->format('Y-m-d')
+        ) {
+            abort(
+                422,
+                'Tanggal awal periode upah tidak boleh sebelum tanggal mulai proyek.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Periode tidak boleh menggunakan tanggal masa depan
+        |--------------------------------------------------------------------------
+        */
+
+        if ($endDate > now()->format('Y-m-d')) {
+            abort(
+                422,
+                'Periode upah tidak boleh menggunakan tanggal yang akan datang.'
+            );
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PEGAWAI PROYEK
+    |--------------------------------------------------------------------------
+    */
+
+    private function getPegawaiUntukProyek(
+        Proyek $proyek,
+        int $pegawaiId
+    ): Pegawai {
+        $pegawai = Pegawai::query()
+            ->with('jabatan')
+            ->whereKey($pegawaiId)
+            ->where('status', 'aktif')
+            ->first();
+
+        abort_unless(
+            $pegawai,
+            422,
+            'Pegawai tidak ditemukan atau sudah tidak aktif.'
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pastikan pegawai terdaftar pada proyek
+        |--------------------------------------------------------------------------
+        */
+
+        $terdaftarDiProyek = $proyek
+            ->pegawais()
+            ->whereKey($pegawai->id)
+            ->exists();
+
+        abort_unless(
+            $terdaftarDiProyek,
+            422,
+            "Pegawai {$pegawai->nama} tidak terdaftar pada proyek ini."
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pastikan memiliki jabatan
+        |--------------------------------------------------------------------------
+        */
+
+        abort_unless(
+            $pegawai->jabatan,
+            422,
+            "Pegawai {$pegawai->nama} belum memiliki jabatan."
+        );
+
+        return $pegawai;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | HITUNG PAYROLL
+    |--------------------------------------------------------------------------
+    |
+    | Semua perhitungan dasar payroll dilakukan melalui method ini.
+    |
+    */
+
+    private function hitungPayroll(
+        Proyek $proyek,
+        Pegawai $pegawai,
+        string $startDate,
+        string $endDate
+    ): array {
+        /*
+        |--------------------------------------------------------------------------
+        | Ambil absensi yang memenuhi syarat pembayaran
+        |--------------------------------------------------------------------------
+        */
+
+        $absensis = Absensi::query()
             ->where('proyek_id', $proyek->id)
-            ->whereBetween('tanggal', [$request->start_date, $request->end_date])
+            ->where('pegawai_id', $pegawai->id)
+            ->whereBetween(
+                'tanggal',
+                [$startDate, $endDate]
+            )
             ->where('status', 'Hadir')
             ->where('status_validasi', 'Disetujui')
             ->where('status_pembayaran', 'Belum Dibayar')
+            ->orderBy('tanggal')
+            ->orderBy('id')
             ->get();
 
-        $hariFull = $kehadiran->where('durasi', 'Full')->count();
-        $hariSetengah = $kehadiran->where('durasi', 'Setengah Hari')->count();
+        /*
+        |--------------------------------------------------------------------------
+        | Hitung hari kerja
+        |--------------------------------------------------------------------------
+        */
 
-        // Kalkulasi Upah
-        $totalUpahKotor = ($hariFull * $gajiHarian) + ($hariSetengah * ($gajiHarian / 2));
+        $hariFull = $absensis
+            ->where('durasi', 'Full')
+            ->count();
 
-        // Cek Kasbon Belum Lunas
-        $totalPotonganKasbon = Kasbon::where('pegawai_id', $pegawai->id)
+        $hariSetengah = $absensis
+            ->where('durasi', 'Setengah Hari')
+            ->count();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Ambil gaji harian
+        |--------------------------------------------------------------------------
+        */
+
+        $gajiHarian = round(
+            (float) ($pegawai->jabatan?->gaji_harian ?? 0),
+            2
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hitung upah kotor
+        |--------------------------------------------------------------------------
+        */
+
+        $upahKotor = round(
+            ($hariFull * $gajiHarian) +
+                ($hariSetengah * ($gajiHarian / 2)),
+            2
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hitung total kasbon aktif
+        |--------------------------------------------------------------------------
+        */
+
+        $totalKasbonAktif = round(
+            (float) Kasbon::query()
+                ->where('pegawai_id', $pegawai->id)
+                ->where('proyek_id', $proyek->id)
+                ->where('status', 'Belum Lunas')
+                ->where('sisa_nominal', '>', 0)
+                ->sum('sisa_nominal'),
+            2
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Potongan kasbon maksimal sebesar upah kotor
+        |--------------------------------------------------------------------------
+        */
+
+        $potonganKasbon = round(
+            min(
+                $totalKasbonAktif,
+                $upahKotor
+            ),
+            2
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Upah bersih
+        |--------------------------------------------------------------------------
+        */
+
+        $upahBersih = round(
+            $upahKotor - $potonganKasbon,
+            2
+        );
+
+        return [
+            'pegawai' => $pegawai,
+
+            'absensis' => $absensis,
+
+            'hari_full' => $hariFull,
+
+            'hari_setengah' => $hariSetengah,
+
+            'gaji_harian' => $gajiHarian,
+
+            'upah_kotor' => $upahKotor,
+
+            'total_kasbon_aktif' => $totalKasbonAktif,
+
+            'potongan_kasbon' => $potonganKasbon,
+
+            'upah_bersih' => $upahBersih,
+
+            'attendance_ids' => $absensis
+                ->pluck('id')
+                ->values(),
+        ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BAYAR KASBON FIFO
+    |--------------------------------------------------------------------------
+    |
+    | Kasbon terlama dibayar terlebih dahulu.
+    |
+    */
+
+    private function bayarKasbonFIFO(
+        Proyek $proyek,
+        Pegawai $pegawai,
+        float $nominal
+    ): void {
+        if ($nominal <= 0) {
+            return;
+        }
+
+        $sisaPotongan = round($nominal, 2);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Lock kasbon agar tidak diproses bersamaan oleh transaksi lain
+        |--------------------------------------------------------------------------
+        */
+
+        $kasbons = Kasbon::query()
+            ->where('pegawai_id', $pegawai->id)
             ->where('proyek_id', $proyek->id)
             ->where('status', 'Belum Lunas')
-            ->sum('nominal');
-
-        $estimasiGajiBersih = $totalUpahKotor - $totalPotonganKasbon;
-
-        // Kembalikan data dalam bentuk JSON agar dibaca oleh JavaScript
-        return response()->json([
-            'status' => 'success',
-            'data' => [
-                'nama_pegawai' => $pegawai->nama,
-                'gaji_harian' => $gajiHarian,
-                'hari_full' => $hariFull,
-                'hari_setengah' => $hariSetengah,
-                'total_upah_kotor' => $totalUpahKotor,
-                'total_potongan_kasbon' => $totalPotonganKasbon,
-                'estimasi_gaji_bersih' => $estimasiGajiBersih,
-                'id_absensi' => $kehadiran->pluck('id')->implode(','),
-            ]
-        ]);
-    }
-
-    // 2. Fungsi untuk Eksekusi Pembayaran & Konversi Kasbon
-    public function bayarGaji(Request $request, Proyek $proyek)
-    {
-        $request->validate([
-            'pegawai_id' => 'required',
-            'nominal_dibayar' => 'required|numeric|min:0',
-            'estimasi_gaji_sistem' => 'required|numeric',
-            'id_absensi' => 'nullable|string',
-        ]);
-
-        // Gunakan DB Transaction agar uang aman jika tiba-tiba mati lampu/error
-        DB::transaction(function () use ($request, $proyek) {
-            if ($request->filled('id_absensi')) {
-                $idAbsensis = explode(',', $request->id_absensi);
-                Absensi::whereIn('id', $idAbsensis)->update(['status_pembayaran' => 'Dibayar']);
-            }
-            // 1. LUNASKAN SEMUA KASBON LAMA (Karena sudah dihitung di kertas buram)
-            Kasbon::where('pegawai_id', $request->pegawai_id)
-                ->where('proyek_id', $proyek->id)
-                ->where('status', 'Belum Lunas')
-                ->update(['status' => 'Lunas']);
-
-            // 2. CEK LEBIH BAYAR (Auto-Konversi Kasbon)
-            $selisih = $request->nominal_dibayar - $request->estimasi_gaji_sistem;
-
-            if ($selisih > 0) {
-                // Kakak Ipar ngasi uang lebih -> Jadikan Kasbon Baru!
-                Kasbon::create([
-                    'proyek_id' => $proyek->id,
-                    'pegawai_id' => $request->pegawai_id,
-                    'tanggal' => date('Y-m-d'),
-                    'nominal' => $selisih,
-                    'keterangan' => 'Sisa hutang / Kelebihan bayar dari gajian tanggal ' . date('d/m/Y'),
-                    'status' => 'Belum Lunas',
-                ]);
-            }
-
-            // 3. CATAT KE BUKU KAS (Hanya jika ada uang yang benar-benar keluar)
-            if ($request->nominal_dibayar > 0) {
-                KeuanganProyek::create([
-                    'proyek_id' => $proyek->id,
-                    'tipe' => 'Pengeluaran',
-                    'kategori' => 'Upah Tukang',
-                    'nominal' => $request->nominal_dibayar,
-                    'tanggal' => date('Y-m-d'),
-                    'keterangan' => 'Pembayaran Gaji a.n ' . Pegawai::find($request->pegawai_id)->nama . ' (Periode: ' . $request->start_date . ' s/d ' . $request->end_date . ')',
-                ]);
-            }
-        });
-
-        return redirect()->route('proyek.keuangan', $proyek->id)->with('success', 'Gaji berhasil dibayarkan dan Buku Kas telah diperbarui!');
-    }
-
-    // ========================================================
-    // FITUR REKAP GAJI MASSAL (BULK PAYROLL)
-    // ========================================================
-
-    public function payrollIndex(Request $request, Proyek $proyek)
-    {
-        // 1. Tentukan Range Tanggal (Default: 7 hari ke belakang)
-        $startDate = $request->input('start_date', now()->subDays(6)->format('Y-m-d'));
-        $endDate = $request->input('end_date', now()->format('Y-m-d'));
-
-        // 2. Cari semua absensi yang BELUM DIBAYAR pada rentang tanggal tersebut
-        $absensis = Absensi::with('pegawai.jabatan')
-            ->where('proyek_id', $proyek->id)
-            ->whereBetween('tanggal', [$startDate, $endDate])
-            ->where('status', 'Hadir')
-            ->where('status_validasi', 'Disetujui')
-            ->where('status_pembayaran', 'Belum Dibayar') // <--- GEMBOK KITA BEKERJA DI SINI!
+            ->where('sisa_nominal', '>', 0)
+            ->orderBy('tanggal')
+            ->orderBy('id')
+            ->lockForUpdate()
             ->get();
 
-        // 3. Kelompokkan data absen berdasarkan Pekerja (Grouping)
-        $rekapGaji = [];
-
-        foreach ($absensis as $absen) {
-            $pegawaiId = $absen->pegawai_id;
-
-            // Jika pekerja belum masuk ke array rekap, buatkan wadahnya
-            if (!isset($rekapGaji[$pegawaiId])) {
-                $rekapGaji[$pegawaiId] = [
-                    'pegawai' => $absen->pegawai,
-                    'hari_full' => 0,
-                    'hari_setengah' => 0,
-                    'id_absensi' => [], // Simpan ID absen untuk di-update nanti
-                ];
+        foreach ($kasbons as $kasbon) {
+            if ($sisaPotongan <= 0) {
+                break;
             }
 
-            // Tambahkan hitungan hari & Simpan ID Absensi
-            if ($absen->durasi == 'Full') {
-                $rekapGaji[$pegawaiId]['hari_full'] += 1;
-            } elseif ($absen->durasi == 'Setengah Hari') {
-                $rekapGaji[$pegawaiId]['hari_setengah'] += 1;
-            }
-            $rekapGaji[$pegawaiId]['id_absensi'][] = $absen->id;
+            $sisaKasbon = round(
+                (float) $kasbon->sisa_nominal,
+                2
+            );
+
+            $potongan = min(
+                $sisaKasbon,
+                $sisaPotongan
+            );
+
+            $sisaKasbonBaru = round(
+                $sisaKasbon - $potongan,
+                2
+            );
+
+            $kasbon->update([
+                'sisa_nominal' => $sisaKasbonBaru,
+
+                'status' => $sisaKasbonBaru <= 0
+                    ? 'Lunas'
+                    : 'Belum Lunas',
+            ]);
+
+            $sisaPotongan = round(
+                $sisaPotongan - $potongan,
+                2
+            );
         }
 
-        // 4. Hitung Uang & Potongan Kasbon untuk setiap pekerja
-        foreach ($rekapGaji as $key => $data) {
-            $gajiHarian = $data['pegawai']->jabatan->gaji_harian ?? 0;
-
-            $upahKotor = ($data['hari_full'] * $gajiHarian) + ($data['hari_setengah'] * ($gajiHarian / 2));
-
-            // Cari potongan kasbon
-            $potonganKasbon = Kasbon::where('pegawai_id', $data['pegawai']->id)
-                ->where('proyek_id', $proyek->id)
-                ->where('status', 'Belum Lunas')
-                ->sum('nominal');
-
-            $rekapGaji[$key]['upah_kotor'] = $upahKotor;
-            $rekapGaji[$key]['potongan_kasbon'] = $potonganKasbon;
-            $rekapGaji[$key]['upah_bersih'] = $upahKotor - $potonganKasbon;
-        }
-
-        return view('Admin.payroll', compact('proyek', 'rekapGaji', 'startDate', 'endDate'));
+        abort_unless(
+            $sisaPotongan <= 0,
+            422,
+            'Potongan kasbon tidak dapat diproses secara penuh.'
+        );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | KEUANGAN PROYEK
+    |--------------------------------------------------------------------------
+    */
 
-    // Fungsi eksekusi pembayaran akan kita buat setelah UI View selesai
-    public function payrollStore(Request $request, Proyek $proyek)
-    {
-        // 1. VALIDASI KETAT (Pertahanan Lapis Kedua)
-        $request->validate([
-            'bukti_file' => 'required|file|mimes:jpeg,png,jpg,pdf|max:2048', // Wajib, format gambar/pdf, max 2MB
-            'pembayaran' => 'required|array',
-            'periode_start' => 'required|date',
-            'periode_end' => 'required|date',
-        ], [
-            // Pesan error custom (opsional, agar lebih ramah dibaca)
-            'bukti_file.required' => 'Bukti serah terima uang wajib diunggah!',
-            'bukti_file.mimes' => 'Format bukti harus berupa foto (JPG/PNG) atau PDF.',
-            'bukti_file.max' => 'Ukuran file bukti maksimal adalah 2 Megabyte.',
+    public function index(
+        Request $request,
+        Proyek $proyek
+    ): View {
+        $this->authorizeAdmin();
+
+        $keuangans = $proyek
+            ->keuangans()
+            ->with('kasbon.pegawai')
+            ->latest('tanggal')
+            ->latest('id')
+            ->get();
+
+        $totalAnggaran = (float) $proyek->anggaran;
+
+        $totalPemasukan = (float) $keuangans
+            ->where('tipe', 'Pemasukan')
+            ->sum('nominal');
+
+        $totalPengeluaran = (float) $keuangans
+            ->where('tipe', 'Pengeluaran')
+            ->sum('nominal');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Saldo kas aktual
+        |--------------------------------------------------------------------------
+        */
+
+        $kasTersedia = round(
+            $totalPemasukan - $totalPengeluaran,
+            2
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Persentase penggunaan berdasarkan pemasukan aktual
+        |--------------------------------------------------------------------------
+        */
+
+        $persentasePenggunaan = $totalPemasukan > 0
+            ? round(
+                ($totalPengeluaran / $totalPemasukan) * 100,
+                2
+            )
+            : 0;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Status kondisi kas
+        |--------------------------------------------------------------------------
+        */
+
+        if ($kasTersedia <= 5_000_000) {
+            $statusKas = 'Kritis';
+        } elseif ($kasTersedia <= 20_000_000) {
+            $statusKas = 'Waspada';
+        } else {
+            $statusKas = 'Aman';
+        }
+
+        return view(
+            'Admin.laporan-keuangan',
+            compact(
+                'proyek',
+                'keuangans',
+                'totalAnggaran',
+                'totalPemasukan',
+                'totalPengeluaran',
+                'kasTersedia',
+                'persentasePenggunaan',
+                'statusKas'
+            )
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | STORE TRANSAKSI KEUANGAN UMUM
+    |--------------------------------------------------------------------------
+    */
+
+    public function store(
+        Request $request,
+        Proyek $proyek
+    ): RedirectResponse {
+        $this->authorizeAdmin();
+        $this->ensureProyekAktif($proyek);
+
+        $data = $request->validate([
+            'tipe' => [
+                'required',
+                'in:Pemasukan,Pengeluaran',
+            ],
+
+            'kategori' => [
+                'required',
+                'string',
+                'max:255',
+            ],
+
+            'nominal' => [
+                'required',
+                'numeric',
+                'min:0.01',
+            ],
+
+            'tanggal' => [
+                'required',
+                'date',
+            ],
+
+            'keterangan' => [
+                'required',
+                'string',
+                'max:2000',
+            ],
+
+            'bukti_file' => [
+                'nullable',
+                'file',
+                'mimes:jpg,jpeg,png,pdf',
+                'max:5120',
+            ],
         ]);
 
-        // Gunakan DB Transaction agar data aman. Jika di tengah jalan error, semua batal.
-        DB::transaction(function () use ($request, $proyek) {
+        /*
+        |--------------------------------------------------------------------------
+        | Transaksi tidak boleh sebelum proyek dimulai
+        |--------------------------------------------------------------------------
+        */
 
-            // Tangkap data array dari tabel HTML
-            $pembayaran = $request->input('pembayaran', []);
-            $periodeStart = $request->input('periode_start');
-            $periodeEnd = $request->input('periode_end');
+        if (
+            $proyek->tanggal_mulai &&
+            $data['tanggal'] < $proyek->tanggal_mulai->format('Y-m-d')
+        ) {
+            return back()->with(
+                'error',
+                'Tanggal transaksi tidak boleh sebelum tanggal mulai proyek.'
+            );
+        }
 
-            $totalKasKeluar = 0;
+        /*
+        |--------------------------------------------------------------------------
+        | Transaksi tidak boleh di masa depan
+        |--------------------------------------------------------------------------
+        */
 
-            // Looping (Ulangi) untuk setiap pekerja yang ada di tabel
-            foreach ($pembayaran as $pegawaiId => $data) {
-                $nominalDibayar = $data['nominal'];
-                $estimasiSistem = $data['estimasi_sistem'];
+        if ($data['tanggal'] > now()->format('Y-m-d')) {
+            return back()->with(
+                'error',
+                'Tanggal transaksi tidak boleh menggunakan tanggal yang akan datang.'
+            );
+        }
 
-                // Pecah ID Absensi dari bentuk string "1,2,3" menjadi array [1, 2, 3]
-                $idAbsensis = explode(',', $data['id_absensi']);
+        $buktiPath = null;
 
-                // 1. GEMBOK ABSENSI: Ubah status menjadi 'Dibayar'
-                if (!empty($data['id_absensi'])) {
-                    Absensi::whereIn('id', $idAbsensis)->update(['status_pembayaran' => 'Dibayar']);
+        try {
+            DB::transaction(function () use (
+                $request,
+                $data,
+                $proyek,
+                &$buktiPath
+            ) {
+                /*
+                |--------------------------------------------------------------------------
+                | Upload bukti
+                |--------------------------------------------------------------------------
+                */
+
+                if ($request->hasFile('bukti_file')) {
+                    $buktiPath = $request
+                        ->file('bukti_file')
+                        ->store(
+                            'bukti-keuangan',
+                            'public'
+                        );
                 }
 
-                // 2. LUNASKAN KASBON LAMA (Karena potongannya sudah dihitung di estimasi sistem)
-                Kasbon::where('pegawai_id', $pegawaiId)
+                /*
+                |--------------------------------------------------------------------------
+                | Simpan transaksi
+                |--------------------------------------------------------------------------
+                */
+
+                KeuanganProyek::create([
+                    'proyek_id' => $proyek->id,
+
+                    'kasbon_id' => null,
+
+                    'tipe' => $data['tipe'],
+
+                    'kategori' => $data['kategori'],
+
+                    'nominal' => $data['nominal'],
+
+                    'tanggal' => $data['tanggal'],
+
+                    'keterangan' => $data['keterangan'],
+
+                    'bukti_file' => $buktiPath,
+                ]);
+            });
+
+            return back()->with(
+                'success',
+                'Transaksi keuangan berhasil dicatat.'
+            );
+        } catch (\Throwable $e) {
+            if ($buktiPath) {
+                Storage::disk('public')->delete($buktiPath);
+            }
+
+            report($e);
+
+            return back()->with(
+                'error',
+                'Transaksi gagal disimpan.'
+            );
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | PREVIEW GAJI
+    |--------------------------------------------------------------------------
+    */
+
+    public function previewGaji(
+        Request $request,
+        Proyek $proyek
+    ) {
+        $this->authorizeAdmin();
+        $this->ensureProyekAktif($proyek);
+
+        $data = $request->validate([
+            'pegawai_id' => [
+                'required',
+                'integer',
+                'exists:pegawais,id',
+            ],
+
+            'start_date' => [
+                'required',
+                'date',
+            ],
+
+            'end_date' => [
+                'required',
+                'date',
+                'after_or_equal:start_date',
+            ],
+        ]);
+
+        $this->validatePayrollPeriod(
+            $proyek,
+            $data['start_date'],
+            $data['end_date']
+        );
+
+        $pegawai = $this->getPegawaiUntukProyek(
+            $proyek,
+            (int) $data['pegawai_id']
+        );
+
+        $hasil = $this->hitungPayroll(
+            $proyek,
+            $pegawai,
+            $data['start_date'],
+            $data['end_date']
+        );
+
+        return response()->json([
+            'success' => true,
+
+            'data' => [
+                'pegawai_id' =>
+                $pegawai->id,
+
+                'nama' =>
+                $pegawai->nama,
+
+                'jabatan' =>
+                $pegawai->jabatan->nama_jabatan,
+
+                'gaji_harian' =>
+                $hasil['gaji_harian'],
+
+                'hari_full' =>
+                $hasil['hari_full'],
+
+                'hari_setengah' =>
+                $hasil['hari_setengah'],
+
+                'upah_kotor' =>
+                $hasil['upah_kotor'],
+
+                'total_kasbon_aktif' =>
+                $hasil['total_kasbon_aktif'],
+
+                'potongan_kasbon' =>
+                $hasil['potongan_kasbon'],
+
+                'upah_bersih' =>
+                $hasil['upah_bersih'],
+
+                'attendance_ids' =>
+                $hasil['attendance_ids'],
+            ],
+        ]);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | BAYAR GAJI SATU PEGAWAI
+    |--------------------------------------------------------------------------
+    */
+
+    public function bayarGaji(
+        Request $request,
+        Proyek $proyek
+    ): RedirectResponse {
+        $this->authorizeAdmin();
+        $this->ensureProyekAktif($proyek);
+
+        $data = $request->validate([
+            'pegawai_id' => [
+                'required',
+                'integer',
+                'exists:pegawais,id',
+            ],
+
+            'nominal' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
+            'start_date' => [
+                'required',
+                'date',
+            ],
+
+            'end_date' => [
+                'required',
+                'date',
+                'after_or_equal:start_date',
+            ],
+
+            'bukti_file' => [
+                'required',
+                'file',
+                'mimes:jpg,jpeg,png,pdf',
+                'max:5120',
+            ],
+        ]);
+
+        $this->validatePayrollPeriod(
+            $proyek,
+            $data['start_date'],
+            $data['end_date']
+        );
+
+        $pegawai = $this->getPegawaiUntukProyek(
+            $proyek,
+            (int) $data['pegawai_id']
+        );
+
+        $buktiPath = null;
+
+        try {
+            DB::transaction(function () use (
+                $request,
+                $data,
+                $proyek,
+                $pegawai,
+                &$buktiPath
+            ) {
+                /*
+                |--------------------------------------------------------------------------
+                | LOCK ABSENSI
+                |--------------------------------------------------------------------------
+                */
+
+                $absensis = Absensi::query()
+                    ->where('proyek_id', $proyek->id)
+                    ->where('pegawai_id', $pegawai->id)
+                    ->whereBetween(
+                        'tanggal',
+                        [
+                            $data['start_date'],
+                            $data['end_date'],
+                        ]
+                    )
+                    ->where('status', 'Hadir')
+                    ->where('status_validasi', 'Disetujui')
+                    ->where('status_pembayaran', 'Belum Dibayar')
+                    ->orderBy('tanggal')
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get();
+
+                abort_if(
+                    $absensis->isEmpty(),
+                    422,
+                    'Tidak ada absensi yang dapat dibayarkan pada periode tersebut.'
+                );
+
+                /*
+                |--------------------------------------------------------------------------
+                | Hitung ulang payroll
+                |--------------------------------------------------------------------------
+                */
+
+                $hariFull = $absensis
+                    ->where('durasi', 'Full')
+                    ->count();
+
+                $hariSetengah = $absensis
+                    ->where('durasi', 'Setengah Hari')
+                    ->count();
+
+                $gajiHarian = round(
+                    (float) $pegawai->jabatan->gaji_harian,
+                    2
+                );
+
+                $upahKotor = round(
+                    ($hariFull * $gajiHarian) +
+                        ($hariSetengah * ($gajiHarian / 2)),
+                    2
+                );
+
+                /*
+                |--------------------------------------------------------------------------
+                | LOCK KASBON
+                |--------------------------------------------------------------------------
+                */
+
+                $kasbons = Kasbon::query()
+                    ->where('pegawai_id', $pegawai->id)
                     ->where('proyek_id', $proyek->id)
                     ->where('status', 'Belum Lunas')
-                    ->update(['status' => 'Lunas']);
+                    ->where('sisa_nominal', '>', 0)
+                    ->orderBy('tanggal')
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get();
 
-                // 3. AUTO-KONVERSI KASBON BARU (Jika Mandor/Admin ngasi uang lebih dari hak sistem)
-                $selisih = $nominalDibayar - $estimasiSistem;
-                if ($selisih > 0) {
+                $totalKasbonAktif = round(
+                    (float) $kasbons->sum('sisa_nominal'),
+                    2
+                );
+
+                $potonganKasbon = round(
+                    min(
+                        $totalKasbonAktif,
+                        $upahKotor
+                    ),
+                    2
+                );
+
+                $upahBersih = round(
+                    $upahKotor - $potonganKasbon,
+                    2
+                );
+
+                $nominalDibayar = round(
+                    (float) $data['nominal'],
+                    2
+                );
+
+                /*
+                |--------------------------------------------------------------------------
+                | Tidak boleh membayar di bawah hak bersih
+                |--------------------------------------------------------------------------
+                */
+
+                abort_if(
+                    $nominalDibayar < $upahBersih,
+                    422,
+                    'Nominal pembayaran tidak boleh lebih kecil dari hak bersih pegawai.'
+                );
+
+                /*
+                |--------------------------------------------------------------------------
+                | Tandai absensi sudah dibayar
+                |--------------------------------------------------------------------------
+                |
+                | PENTING:
+                | Migration menggunakan "Dibayar", bukan "Sudah Dibayar".
+                |
+                */
+
+                Absensi::query()
+                    ->whereIn(
+                        'id',
+                        $absensis->pluck('id')
+                    )
+                    ->update([
+                        'status_pembayaran' => 'Dibayar',
+                    ]);
+
+                /*
+                |--------------------------------------------------------------------------
+                | Bayar kasbon FIFO
+                |--------------------------------------------------------------------------
+                */
+
+                $this->bayarKasbonFIFO(
+                    $proyek,
+                    $pegawai,
+                    $potonganKasbon
+                );
+
+                /*
+                |--------------------------------------------------------------------------
+                | Kelebihan pembayaran menjadi kasbon baru
+                |--------------------------------------------------------------------------
+                */
+
+                $kasbonBaru = round(
+                    $nominalDibayar - $upahBersih,
+                    2
+                );
+
+                if ($kasbonBaru > 0) {
                     Kasbon::create([
-                        'proyek_id' => $proyek->id,
-                        'pegawai_id' => $pegawaiId,
-                        'tanggal' => date('Y-m-d'),
-                        'nominal' => $selisih,
-                        'keterangan' => 'Sisa hutang / Kelebihan bayar dari gajian massal tanggal ' . date('d/m/Y'),
-                        'status' => 'Belum Lunas',
+                        'pegawai_id' =>
+                        $pegawai->id,
+
+                        'proyek_id' =>
+                        $proyek->id,
+
+                        'tanggal' =>
+                        now()->format('Y-m-d'),
+
+                        'nominal' =>
+                        $kasbonBaru,
+
+                        'sisa_nominal' =>
+                        $kasbonBaru,
+
+                        'keterangan' =>
+                        'Selisih pembayaran upah periode ' .
+                            $data['start_date'] .
+                            ' s.d. ' .
+                            $data['end_date'],
+
+                        'status' =>
+                        'Belum Lunas',
                     ]);
                 }
 
-                // Tambahkan ke total uang tunai yang harus disiapkan
-                $totalKasKeluar += $nominalDibayar;
-            }
+                /*
+                |--------------------------------------------------------------------------
+                | Upload bukti pembayaran
+                |--------------------------------------------------------------------------
+                */
 
-            // 4. CATAT PENGELUARAN KE BUKU KAS PROYEK
-            if ($totalKasKeluar > 0) {
-
-                // Proses upload bukti file jika ada
-                $pathBukti = null;
                 if ($request->hasFile('bukti_file')) {
-                    $pathBukti = $request->file('bukti_file')->store('bukti_keuangan', 'public');
+                    $buktiPath = $request
+                        ->file('bukti_file')
+                        ->store(
+                            'bukti-keuangan',
+                            'public'
+                        );
                 }
 
-                KeuanganProyek::create([
-                    'proyek_id' => $proyek->id,
-                    'tipe' => 'Pengeluaran',
-                    'kategori' => 'Upah Tukang',
-                    'nominal' => $totalKasKeluar,
-                    'tanggal' => date('Y-m-d'),
-                    'keterangan' => 'Pembayaran Gaji Massal Tukang (Periode: ' . Carbon::parse($periodeStart)->format('d/m/y') . ' s/d ' . Carbon::parse($periodeEnd)->format('d/m/y') . ')',
-                    'bukti_file' => $pathBukti, // <--- Foto/Dokumen disimpan di sini
-                ]);
-            }
-        });
+                /*
+                |--------------------------------------------------------------------------
+                | Catat CASH OUT aktual
+                |--------------------------------------------------------------------------
+                */
 
-        // 5. REDIRECT: Arahkan kembali ke halaman Keuangan Proyek dengan pesan sukses
-        return redirect()->route('proyek.keuangan', $proyek->id)->with('success', 'Gaji massal berhasil dibayarkan, absensi telah digembok, dan saldo kas proyek telah dipotong!');
+                KeuanganProyek::create([
+                    'proyek_id' =>
+                    $proyek->id,
+
+                    'kasbon_id' =>
+                    null,
+
+                    'tipe' =>
+                    'Pengeluaran',
+
+                    'kategori' =>
+                    'Upah Tukang',
+
+                    'nominal' =>
+                    $nominalDibayar,
+
+                    'tanggal' =>
+                    now()->format('Y-m-d'),
+
+                    'keterangan' =>
+                    'Pembayaran upah a.n ' .
+                        $pegawai->nama .
+                        ' periode ' .
+                        $data['start_date'] .
+                        ' s.d. ' .
+                        $data['end_date'],
+
+                    'bukti_file' =>
+                    $buktiPath,
+                ]);
+            });
+
+            return redirect()
+                ->route(
+                    'proyek.keuangan',
+                    $proyek->id
+                )
+                ->with(
+                    'success',
+                    "Upah {$pegawai->nama} berhasil dibayarkan."
+                );
+        } catch (\Throwable $e) {
+            if ($buktiPath) {
+                Storage::disk('public')->delete($buktiPath);
+            }
+
+            report($e);
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    $e->getMessage() ?: 'Pembayaran upah gagal diproses.'
+                );
+        }
     }
 
-    public function unduhPdf($id)
+    /*
+    |--------------------------------------------------------------------------
+    | HALAMAN REKAP / RINCIAN UPAH
+    |--------------------------------------------------------------------------
+    */
+
+    public function payrollIndex(
+        Request $request,
+        Proyek $proyek
+    ): View {
+        $this->authorizeAdmin();
+        $this->ensureProyekAktif($proyek);
+
+        $data = $request->validate([
+            'start_date' => [
+                'nullable',
+                'date',
+            ],
+
+            'end_date' => [
+                'nullable',
+                'date',
+                'after_or_equal:start_date',
+            ],
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Default periode = 7 hari terakhir
+        |--------------------------------------------------------------------------
+        |
+        | Tetapi tidak boleh mundur melewati tanggal mulai proyek.
+        |
+        */
+
+        $defaultStartDate = now()
+            ->subDays(6)
+            ->startOfDay();
+
+        if ($proyek->tanggal_mulai) {
+            $tanggalMulaiProyek = $proyek
+                ->tanggal_mulai
+                ->copy()
+                ->startOfDay();
+
+            if (
+                $tanggalMulaiProyek
+                ->greaterThan($defaultStartDate)
+            ) {
+                $defaultStartDate = $tanggalMulaiProyek;
+            }
+        }
+
+        $startDate = $data['start_date']
+            ?? $defaultStartDate->format('Y-m-d');
+
+        $endDate = $data['end_date']
+            ?? now()->format('Y-m-d');
+
+        $this->validatePayrollPeriod(
+            $proyek,
+            $startDate,
+            $endDate
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Cari pegawai berdasarkan absensi yang memenuhi syarat
+        |--------------------------------------------------------------------------
+        */
+
+        $absensis = Absensi::query()
+            ->with('pegawai.jabatan')
+            ->where('proyek_id', $proyek->id)
+            ->whereBetween(
+                'tanggal',
+                [
+                    $startDate,
+                    $endDate,
+                ]
+            )
+            ->where('status', 'Hadir')
+            ->where('status_validasi', 'Disetujui')
+            ->where('status_pembayaran', 'Belum Dibayar')
+            ->orderBy('tanggal')
+            ->orderBy('id')
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Ambil pegawai unik
+        |--------------------------------------------------------------------------
+        */
+
+        $pegawaiIds = $absensis
+            ->pluck('pegawai_id')
+            ->unique()
+            ->values();
+
+        $rekapGaji = [];
+
+        foreach ($pegawaiIds as $pegawaiId) {
+            $pegawai = $absensis
+                ->firstWhere(
+                    'pegawai_id',
+                    $pegawaiId
+                )
+                ?->pegawai;
+
+            if (!$pegawai || !$pegawai->jabatan) {
+                continue;
+            }
+
+            $hasil = $this->hitungPayroll(
+                $proyek,
+                $pegawai,
+                $startDate,
+                $endDate
+            );
+
+            if (
+                $hasil['attendance_ids']->isEmpty()
+            ) {
+                continue;
+            }
+
+            $rekapGaji[$pegawaiId] = [
+                'pegawai' =>
+                $pegawai,
+
+                'hari_full' =>
+                $hasil['hari_full'],
+
+                'hari_setengah' =>
+                $hasil['hari_setengah'],
+
+                'gaji_harian' =>
+                $hasil['gaji_harian'],
+
+                'upah_kotor' =>
+                $hasil['upah_kotor'],
+
+                'total_kasbon_aktif' =>
+                $hasil['total_kasbon_aktif'],
+
+                'potongan_kasbon' =>
+                $hasil['potongan_kasbon'],
+
+                'upah_bersih' =>
+                $hasil['upah_bersih'],
+
+                'id_absensi' =>
+                $hasil['attendance_ids']->all(),
+            ];
+        }
+
+        return view(
+            'Admin.payroll',
+            compact(
+                'proyek',
+                'rekapGaji',
+                'startDate',
+                'endDate'
+            )
+        );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SIMPAN PEMBAYARAN GAJI MASSAL
+    |--------------------------------------------------------------------------
+    */
+
+    public function payrollStore(
+        Request $request,
+        Proyek $proyek
+    ): RedirectResponse {
+        $this->authorizeAdmin();
+        $this->ensureProyekAktif($proyek);
+
+        $data = $request->validate([
+            'periode_start' => [
+                'required',
+                'date',
+            ],
+
+            'periode_end' => [
+                'required',
+                'date',
+                'after_or_equal:periode_start',
+            ],
+
+            'pembayaran' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+
+            'pembayaran.*.pegawai_id' => [
+                'required',
+                'integer',
+                'exists:pegawais,id',
+            ],
+
+            'pembayaran.*.nominal' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
+            'bukti_file' => [
+                'required',
+                'file',
+                'mimes:jpg,jpeg,png,pdf',
+                'max:5120',
+            ],
+        ]);
+
+        $this->validatePayrollPeriod(
+            $proyek,
+            $data['periode_start'],
+            $data['periode_end']
+        );
+
+        $buktiPath = null;
+
+        try {
+            DB::transaction(function () use (
+                $request,
+                $data,
+                $proyek,
+                &$buktiPath
+            ) {
+                $pegawaiIdsDiproses = [];
+
+                $totalCashOut = 0;
+
+                foreach (
+                    $data['pembayaran']
+                    as $pembayaran
+                ) {
+                    $pegawaiId =
+                        (int) $pembayaran['pegawai_id'];
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Cegah pegawai diproses dua kali
+                    |--------------------------------------------------------------------------
+                    */
+
+                    abort_if(
+                        in_array(
+                            $pegawaiId,
+                            $pegawaiIdsDiproses,
+                            true
+                        ),
+                        422,
+                        'Pegawai yang sama tidak boleh diproses lebih dari satu kali.'
+                    );
+
+                    $pegawaiIdsDiproses[] =
+                        $pegawaiId;
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Validasi pegawai
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $pegawai =
+                        $this->getPegawaiUntukProyek(
+                            $proyek,
+                            $pegawaiId
+                        );
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | LOCK ABSENSI
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $absensis = Absensi::query()
+                        ->where('proyek_id', $proyek->id)
+                        ->where('pegawai_id', $pegawai->id)
+                        ->whereBetween(
+                            'tanggal',
+                            [
+                                $data['periode_start'],
+                                $data['periode_end'],
+                            ]
+                        )
+                        ->where('status', 'Hadir')
+                        ->where('status_validasi', 'Disetujui')
+                        ->where('status_pembayaran', 'Belum Dibayar')
+                        ->orderBy('tanggal')
+                        ->orderBy('id')
+                        ->lockForUpdate()
+                        ->get();
+
+                    abort_if(
+                        $absensis->isEmpty(),
+                        422,
+                        "Tidak ada absensi yang dapat dibayarkan untuk {$pegawai->nama}."
+                    );
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Hitung ulang payroll
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $hariFull = $absensis
+                        ->where('durasi', 'Full')
+                        ->count();
+
+                    $hariSetengah = $absensis
+                        ->where('durasi', 'Setengah Hari')
+                        ->count();
+
+                    $gajiHarian = round(
+                        (float) $pegawai
+                            ->jabatan
+                            ->gaji_harian,
+                        2
+                    );
+
+                    $upahKotor = round(
+                        ($hariFull * $gajiHarian) +
+                            (
+                                $hariSetengah *
+                                ($gajiHarian / 2)
+                            ),
+                        2
+                    );
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | LOCK KASBON
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $kasbons = Kasbon::query()
+                        ->where('pegawai_id', $pegawai->id)
+                        ->where('proyek_id', $proyek->id)
+                        ->where('status', 'Belum Lunas')
+                        ->where('sisa_nominal', '>', 0)
+                        ->orderBy('tanggal')
+                        ->orderBy('id')
+                        ->lockForUpdate()
+                        ->get();
+
+                    $totalKasbonAktif = round(
+                        (float) $kasbons->sum(
+                            'sisa_nominal'
+                        ),
+                        2
+                    );
+
+                    $potonganKasbon = round(
+                        min(
+                            $totalKasbonAktif,
+                            $upahKotor
+                        ),
+                        2
+                    );
+
+                    $upahBersih = round(
+                        $upahKotor -
+                            $potonganKasbon,
+                        2
+                    );
+
+                    $nominalDibayar = round(
+                        (float) $pembayaran['nominal'],
+                        2
+                    );
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Tidak boleh membayar di bawah hak bersih
+                    |--------------------------------------------------------------------------
+                    */
+
+                    abort_if(
+                        $nominalDibayar < $upahBersih,
+                        422,
+                        "Nominal pembayaran untuk {$pegawai->nama} tidak boleh lebih kecil dari hak bersih."
+                    );
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Tandai absensi sebagai DIBAYAR
+                    |--------------------------------------------------------------------------
+                    */
+
+                    Absensi::query()
+                        ->whereIn(
+                            'id',
+                            $absensis->pluck('id')
+                        )
+                        ->update([
+                            'status_pembayaran' =>
+                            'Dibayar',
+                        ]);
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Potong kasbon FIFO
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $this->bayarKasbonFIFO(
+                        $proyek,
+                        $pegawai,
+                        $potonganKasbon
+                    );
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Kelebihan pembayaran menjadi kasbon baru
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $kasbonBaru = round(
+                        $nominalDibayar -
+                            $upahBersih,
+                        2
+                    );
+
+                    if ($kasbonBaru > 0) {
+                        Kasbon::create([
+                            'pegawai_id' =>
+                            $pegawai->id,
+
+                            'proyek_id' =>
+                            $proyek->id,
+
+                            'tanggal' =>
+                            now()->format('Y-m-d'),
+
+                            'nominal' =>
+                            $kasbonBaru,
+
+                            'sisa_nominal' =>
+                            $kasbonBaru,
+
+                            'keterangan' =>
+                            'Selisih pembayaran upah periode ' .
+                                $data['periode_start'] .
+                                ' s.d. ' .
+                                $data['periode_end'],
+
+                            'status' =>
+                            'Belum Lunas',
+                        ]);
+                    }
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Akumulasi cash out aktual
+                    |--------------------------------------------------------------------------
+                    */
+
+                    $totalCashOut = round(
+                        $totalCashOut +
+                            $nominalDibayar,
+                        2
+                    );
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Upload satu bukti pembayaran massal
+                |--------------------------------------------------------------------------
+                */
+
+                if ($request->hasFile('bukti_file')) {
+                    $buktiPath = $request
+                        ->file('bukti_file')
+                        ->store(
+                            'bukti-keuangan',
+                            'public'
+                        );
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Catat satu transaksi keuangan
+                |--------------------------------------------------------------------------
+                */
+
+                KeuanganProyek::create([
+                    'proyek_id' =>
+                    $proyek->id,
+
+                    'kasbon_id' =>
+                    null,
+
+                    'tipe' =>
+                    'Pengeluaran',
+
+                    'kategori' =>
+                    'Upah Tukang',
+
+                    'nominal' =>
+                    $totalCashOut,
+
+                    'tanggal' =>
+                    now()->format('Y-m-d'),
+
+                    'keterangan' =>
+                    'Pembayaran upah massal periode ' .
+                        $data['periode_start'] .
+                        ' s.d. ' .
+                        $data['periode_end'],
+
+                    'bukti_file' =>
+                    $buktiPath,
+                ]);
+            });
+
+            return redirect()
+                ->route(
+                    'proyek.keuangan',
+                    $proyek->id
+                )
+                ->with(
+                    'success',
+                    'Pembayaran upah berhasil diproses dan saldo kas proyek telah diperbarui.'
+                );
+        } catch (\Throwable $e) {
+            if ($buktiPath) {
+                Storage::disk('public')->delete(
+                    $buktiPath
+                );
+            }
+
+            report($e);
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    $e->getMessage() ?: 'Pembayaran upah gagal diproses.'
+                );
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | UNDUH PDF LAPORAN KEUANGAN
+    |--------------------------------------------------------------------------
+    */
+
+
+    /*
+|--------------------------------------------------------------------------
+| UNDUH PDF LAPORAN KEUANGAN
+|--------------------------------------------------------------------------
+*/
+
+    public function unduhPdf(Proyek $proyek)
     {
-        $proyek = Proyek::with('keuangans')->findOrFail($id);
+        $this->authorizeAdmin();
 
-        // Hitung total pemasukan dan pengeluaran secara akurat menggunakan kolom 'tipe'
-        $totalPemasukan = $proyek->keuangans->where('tipe', 'Pemasukan')->sum('nominal');
-        $totalPengeluaran = $proyek->keuangans->where('tipe', 'Pengeluaran')->sum('nominal');
-        $kasTersedia = $totalPemasukan - $totalPengeluaran;
+        $keuangans = $proyek
+            ->keuangans()
+            ->with('kasbon.pegawai')
+            ->orderBy('tanggal')
+            ->orderBy('id')
+            ->get();
 
-        // Data yang akan dikirim ke view PDF
-        $data = [
-            'proyek' => $proyek,
-            'totalAnggaran' => $proyek->anggaran,
-            'totalPemasukan' => $totalPemasukan,
-            'totalPengeluaran' => $totalPengeluaran,
-            'kasTersedia' => $kasTersedia,
-            'tanggal' => now()->translatedFormat('d F Y')
-        ];
+        $totalAnggaran = (float) ($proyek->anggaran ?? 0);
 
-        $pdf = Pdf::loadView('pdf.laporan-keuangan', $data)
-            ->setPaper('a4', 'portrait');
+        $totalPemasukan = (float) $keuangans
+            ->where('tipe', 'Pemasukan')
+            ->sum('nominal');
 
-        return $pdf->download('Laporan-Keuangan-' . $proyek->nama_proyek . '.pdf');
+        $totalPengeluaran = (float) $keuangans
+            ->where('tipe', 'Pengeluaran')
+            ->sum('nominal');
+
+        $kasTersedia = round(
+            $totalPemasukan - $totalPengeluaran,
+            2
+        );
+
+        $tanggal = now()
+            ->locale('id')
+            ->translatedFormat('d F Y');
+
+        $pdf = Pdf::loadView(
+            'pdf.laporan-keuangan',
+            compact(
+                'proyek',
+                'keuangans',
+                'totalAnggaran',
+                'totalPemasukan',
+                'totalPengeluaran',
+                'kasTersedia',
+                'tanggal'
+            )
+        );
+
+        return $pdf->download(
+            'laporan-keuangan-' .
+                \Illuminate\Support\Str::slug($proyek->nama_proyek) .
+                '.pdf'
+        );
     }
 }

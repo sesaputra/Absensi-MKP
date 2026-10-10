@@ -1,77 +1,95 @@
-<aside class="hidden w-64 flex-col bg-slate-950 text-white md:flex">
 
-    {{-- =========================================================
-        LOGO AREA
-    ========================================================== --}}
-    <div
-        class="mb-2 flex items-center justify-center border-b border-white/10 px-4 py-6"
-    >
+<aside class="hidden w-64 shrink-0 flex-col border-r border-white/[0.06] bg-[#0F172A] text-slate-300 md:flex">
 
-        <img
-            src="{{ asset('images/logo-mkp.png') }}"
-            alt="Logo MKP"
-            class="h-24 w-35 max-w-[85%] rounded-xl bg-white object-contain p-2 shadow-md"
-        >
+    {{-- LOGO AREA --}}
+    <div class="px-5 pb-6 pt-3">
+        <div class="flex items-center justify-center rounded-2xl border border-white/[0.08] bg-white px-4 py-4 shadow-lg shadow-black/10">
+            <img
+                src="{{ asset('images/logo-mkp.png') }}"
+                alt="Logo MKP"
+                class="h-20 w-full max-w-[190px] object-contain"
+            >
+        </div>
 
+        <div class="mt-5 px-1">
+            <!-- <p class="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                Workspace
+            </p> -->
+
+            <h2 class="mt-1.5 text-sm font-semibold tracking-wide text-white">
+                Sistem Administrasi
+            </h2>
+
+            <p class="mt-1 text-xs text-slate-500">
+                Kegiatan Proyek MKP
+            </p>
+        </div>
     </div>
 
+    {{-- MENU NAVIGASI --}}
+    <nav class="flex-1 space-y-1 overflow-y-auto px-3 pb-5">
 
-    {{-- =========================================================
-        MENU NAVIGASI
-    ========================================================== --}}
-    <nav class="flex-1 space-y-1.5 overflow-y-auto px-3 py-5">
+        <p class="mb-3 px-3 pt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+            Menu Utama
+        </p>
 
-        {{-- =====================================================
-            DASHBOARD
-        ====================================================== --}}
+        {{-- DASHBOARD --}}
         <a
             href="{{ url('/dashboard') }}"
-            class="group flex items-center rounded-xl px-4 py-3 transition-all duration-200
+            @if(request()->is('dashboard'))
+                aria-current="page"
+            @endif
+            class="group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-3 text-[13px] font-medium transition-all duration-200
             {{ request()->is('dashboard')
-                ? 'bg-white/[0.08] text-white shadow-sm'
-                : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-100' }}"
+                ? 'bg-white/[0.09] text-white shadow-sm ring-1 ring-inset ring-white/[0.06]'
+                : 'text-slate-400 hover:bg-white/[0.045] hover:text-slate-100' }}"
         >
+            @if(request()->is('dashboard'))
+                <span class="absolute bottom-2.5 left-0 top-2.5 w-[3px] rounded-r-full bg-amber-400"></span>
+            @endif
 
             <svg
-                class="mr-3 h-5 w-5 shrink-0
+                class="h-[19px] w-[19px] shrink-0 transition-colors duration-200
                 {{ request()->is('dashboard')
-                    ? 'text-emerald-400'
+                    ? 'text-amber-400'
                     : 'text-slate-500 group-hover:text-slate-300' }}"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
                 aria-hidden="true"
             >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-                />
+                <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" stroke-width="1.7"/>
+                <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" stroke-width="1.7"/>
+                <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" stroke-width="1.7"/>
+                <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" stroke-width="1.7"/>
             </svg>
 
-            <span class="font-medium">
-                Dashboard
-            </span>
+            <span>Dashboard</span>
 
+            @if(request()->is('dashboard'))
+                <span class="ml-auto h-1.5 w-1.5 rounded-full bg-amber-400"></span>
+            @endif
         </a>
 
-
-        {{-- =====================================================
-            MANAJEMEN PEGAWAI
-        ====================================================== --}}
+        {{-- MANAJEMEN PEGAWAI --}}
         <a
             href="{{ url('/manajemen-pegawai') }}"
-            class="group flex items-center rounded-xl px-4 py-3 transition-all duration-200
-            {{ request()->is('manajemen-pegawai')
-                ? 'bg-white/[0.08] text-white shadow-sm'
-                : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-100' }}"
+            @if(request()->is('manajemen-pegawai*'))
+                aria-current="page"
+            @endif
+            class="group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-3 text-[13px] font-medium transition-all duration-200
+            {{ request()->is('manajemen-pegawai*')
+                ? 'bg-white/[0.09] text-white shadow-sm ring-1 ring-inset ring-white/[0.06]'
+                : 'text-slate-400 hover:bg-white/[0.045] hover:text-slate-100' }}"
         >
+            @if(request()->is('manajemen-pegawai*'))
+                <span class="absolute bottom-2.5 left-0 top-2.5 w-[3px] rounded-r-full bg-amber-400"></span>
+            @endif
 
             <svg
-                class="mr-3 h-5 w-5 shrink-0
-                {{ request()->is('manajemen-pegawai')
-                    ? 'text-emerald-400'
+                class="h-[19px] w-[19px] shrink-0 transition-colors duration-200
+                {{ request()->is('manajemen-pegawai*')
+                    ? 'text-amber-400'
                     : 'text-slate-500 group-hover:text-slate-300' }}"
                 fill="none"
                 stroke="currentColor"
@@ -81,69 +99,73 @@
                 <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                    stroke-width="1.7"
+                    d="M16 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2m12-13a4 4 0 11-8 0 4 4 0 018 0zm2 3a4 4 0 010 7m4 3v-2a4 4 0 00-3-3.87"
                 />
             </svg>
 
-            <span class="font-medium">
-                Manajemen Pegawai
-            </span>
+            <span>Manajemen Pegawai</span>
 
+            @if(request()->is('manajemen-pegawai*'))
+                <span class="ml-auto h-1.5 w-1.5 rounded-full bg-amber-400"></span>
+            @endif
         </a>
 
-
-        {{-- =====================================================
-            MANAJEMEN ABSENSI
-        ====================================================== --}}
+        {{-- MANAJEMEN ABSENSI --}}
         <a
             href="{{ url('/manajemen-absensi') }}"
-            class="group flex items-center rounded-xl px-4 py-3 transition-all duration-200
-            {{ request()->is('manajemen-absensi')
-                ? 'bg-white/[0.08] text-white shadow-sm'
-                : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-100' }}"
+            @if(request()->is('manajemen-absensi*'))
+                aria-current="page"
+            @endif
+            class="group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-3 text-[13px] font-medium transition-all duration-200
+            {{ request()->is('manajemen-absensi*')
+                ? 'bg-white/[0.09] text-white shadow-sm ring-1 ring-inset ring-white/[0.06]'
+                : 'text-slate-400 hover:bg-white/[0.045] hover:text-slate-100' }}"
         >
+            @if(request()->is('manajemen-absensi*'))
+                <span class="absolute bottom-2.5 left-0 top-2.5 w-[3px] rounded-r-full bg-amber-400"></span>
+            @endif
 
             <svg
-                class="mr-3 h-5 w-5 shrink-0
-                {{ request()->is('manajemen-absensi')
-                    ? 'text-emerald-400'
+                class="h-[19px] w-[19px] shrink-0 transition-colors duration-200
+                {{ request()->is('manajemen-absensi*')
+                    ? 'text-amber-400'
                     : 'text-slate-500 group-hover:text-slate-300' }}"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
                 aria-hidden="true"
             >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a3 3 0 006 0M9 14l2 2 4-4"
-                />
+                <rect x="4" y="5" width="16" height="16" rx="2" stroke-width="1.7"/>
+                <path d="M8 3v4m8-4v4M4 10h16m-11 5 2 2 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"/>
             </svg>
 
-            <span class="font-medium">
-                Manajemen Absensi
-            </span>
+            <span>Manajemen Absensi</span>
 
+            @if(request()->is('manajemen-absensi*'))
+                <span class="ml-auto h-1.5 w-1.5 rounded-full bg-amber-400"></span>
+            @endif
         </a>
 
-
-        {{-- =====================================================
-            MANAJEMEN PROYEK
-        ====================================================== --}}
+        {{-- MANAJEMEN PROYEK --}}
         <a
             href="{{ route('proyek.index') }}"
-            class="group flex items-center rounded-xl px-4 py-3 transition-all duration-200
-            {{ request()->is('manajemen-proyek*', 'proyek/*', 'admin/proyek/*')
-                ? 'bg-white/[0.08] text-white shadow-sm'
-                : 'text-slate-400 hover:bg-white/[0.05] hover:text-slate-100' }}"
+            @if(request()->is('manajemen-proyek*', 'proyek', 'proyek/*', 'admin/proyek/*'))
+                aria-current="page"
+            @endif
+            class="group relative flex items-center gap-3 overflow-hidden rounded-xl px-3.5 py-3 text-[13px] font-medium transition-all duration-200
+            {{ request()->is('manajemen-proyek*', 'proyek', 'proyek/*', 'admin/proyek/*')
+                ? 'bg-white/[0.09] text-white shadow-sm ring-1 ring-inset ring-white/[0.06]'
+                : 'text-slate-400 hover:bg-white/[0.045] hover:text-slate-100' }}"
         >
+            @if(request()->is('manajemen-proyek*', 'proyek', 'proyek/*', 'admin/proyek/*'))
+                <span class="absolute bottom-2.5 left-0 top-2.5 w-[3px] rounded-r-full bg-amber-400"></span>
+            @endif
 
             <svg
-                class="mr-3 h-5 w-5 shrink-0
-                {{ request()->is('manajemen-proyek*', 'proyek/*', 'admin/proyek/*')
-                    ? 'text-emerald-400'
+                class="h-[19px] w-[19px] shrink-0 transition-colors duration-200
+                {{ request()->is('manajemen-proyek*', 'proyek', 'proyek/*', 'admin/proyek/*')
+                    ? 'text-amber-400'
                     : 'text-slate-500 group-hover:text-slate-300' }}"
                 fill="none"
                 stroke="currentColor"
@@ -153,33 +175,62 @@
                 <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                    stroke-width="1.7"
+                    d="M3 21h18M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16M9 7h2m2 0h2M9 11h2m2 0h2M9 15h2m2 0h2M10 21v-3a2 2 0 014 0v3"
                 />
             </svg>
 
-            <span class="font-medium">
-                Manajemen Proyek
-            </span>
+            <span>Manajemen Proyek</span>
 
+            @if(request()->is('manajemen-proyek*', 'proyek', 'proyek/*', 'admin/proyek/*'))
+                <span class="ml-auto h-1.5 w-1.5 rounded-full bg-amber-400"></span>
+            @endif
         </a>
 
     </nav>
 
+    {{-- FOOTER --}}
+    <div class="mt-auto border-t border-white/[0.07] px-5 py-5">
+        <div class="flex items-center gap-3">
+            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-400/15 bg-amber-400/[0.08]">
+                <svg
+                    class="h-4 w-4 text-amber-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.7"
+                        d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z"
+                    />
+                    <path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"/>
+                </svg>
+            </div>
 
-    {{-- =========================================================
-        SIDEBAR FOOTER
-    ========================================================== --}}
-    <div class="border-t border-white/10 px-4 py-4">
+            <div class="min-w-0">
+                <p class="text-xs font-semibold tracking-wide text-slate-200">
+                    SAKP
+                </p>
 
-        <p class="text-center text-[11px] leading-5 text-slate-500">
-            &copy; {{ now()->year }} SAKP
-        </p>
+                <p class="mt-1 text-[10px] leading-4 text-slate-500">
+                    Sistem Administrasi Kegiatan Proyek
+                </p>
+            </div>
+        </div>
 
-        <p class="mt-0.5 text-center text-[10px] leading-4 text-slate-600">
-            Sistem Administrasi Kegiatan Proyek
-        </p>
+        <div class="mt-4 flex items-center justify-between border-t border-white/[0.06] pt-3">
+            <span class="text-[10px] text-slate-500">
+                &copy; {{ now()->year }} MKP
+            </span>
 
+            <span class="inline-flex items-center gap-1.5 text-[10px] text-slate-500">
+                <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                Sistem Aktif
+            </span>
+        </div>
     </div>
 
 </aside>

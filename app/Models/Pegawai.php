@@ -20,19 +20,23 @@ class Pegawai extends Model
         'status' => 'string',
     ];
 
-    public function user(): BelongsTo
+    public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function jabatan(): BelongsTo
     {
-        return $this->belongsTo(Jabatan::class, 'jabatan_id');
+        return $this->belongsTo(Jabatan::class);
     }
 
-    // Relasi: Satu Pegawai bisa terlibat di banyak Proyek
     public function proyeks(): BelongsToMany
     {
-        return $this->belongsToMany(Proyek::class, 'pegawai_proyek');
+        return $this->belongsToMany(
+            Proyek::class,
+            'pegawai_proyek',
+            'pegawai_id',
+            'proyek_id'
+        );
     }
 }
