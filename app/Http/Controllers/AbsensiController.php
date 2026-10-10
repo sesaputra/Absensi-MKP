@@ -266,7 +266,7 @@ class AbsensiController extends Controller
          */
         if (!$laporanHariIni) {
             return view(
-                'Pengawas.absensi',
+                'pengawas.absensi',
                 compact('proyek')
             );
         }
@@ -282,7 +282,7 @@ class AbsensiController extends Controller
                 ->keyBy('pegawai_id');
 
             return view(
-                'Pengawas.absensi-sore',
+                'pengawas.absensi-sore',
                 compact(
                     'proyek',
                     'laporanHariIni',
@@ -303,7 +303,7 @@ class AbsensiController extends Controller
                 ->keyBy('pegawai_id');
 
             return view(
-                'Pengawas.absensi-sore',
+                'pengawas.absensi-sore',
                 compact(
                     'proyek',
                     'laporanHariIni',
@@ -846,7 +846,7 @@ class AbsensiController extends Controller
             ->orderBy('id', 'desc')
             ->get();
         return view(
-            'Admin.manajemen-absensi',
+            'admin.manajemen-absensi',
             compact(
                 'draftLaporan',
                 'laporanValid',
@@ -977,7 +977,7 @@ class AbsensiController extends Controller
             ->get();
 
         return view(
-            'Admin.detail-absensi-proyek',
+            'admin.detail-absensi-proyek',
             compact(
                 'proyek',
                 'riwayatLaporan',

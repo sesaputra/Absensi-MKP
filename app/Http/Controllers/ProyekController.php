@@ -34,7 +34,7 @@ class ProyekController extends Controller
             ->get();
 
         return view(
-            'Admin.manajemen-proyek',
+            'admin.manajemen-proyek',
             compact('proyeks')
         );
     }
@@ -144,7 +144,7 @@ class ProyekController extends Controller
             ->get();
 
         return view(
-            'Admin.detail-manajemen-proyek',
+            'admin.detail-manajemen-proyek',
             compact(
                 'proyek',
                 'pekerjaPerJabatan',

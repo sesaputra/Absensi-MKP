@@ -25,7 +25,7 @@ class PengawasController extends Controller
             ->get();
 
         return view(
-            'Pengawas.dashboard',
+            'pengawas.dashboard',
             compact(
                 'pegawai',
                 'proyekDitugaskan'
@@ -124,51 +124,8 @@ class PengawasController extends Controller
             ->withQueryString();
 
         return view(
-            'Pengawas.riwayat-absensi',
+            'pengawas.riwayat-absensi',
             compact('pegawai', 'laporan', 'proyek')
-        );
-    }
-
-
-
-    public function detailAbsensi(LaporanHarian $laporan)
-    {
-        $user = Auth::user();
-        $pegawai = $user->pegawai;
-
-        if (!$pegawai) {
-            abort(403, 'Halaman ini khusus untuk tim lapangan.');
-        }
-
-        /*
-    |--------------------------------------------------------------------------
-    | Validasi Akses Berdasarkan Proyek
-    |--------------------------------------------------------------------------
-    */
-
-        $memilikiAkses = $pegawai->proyeks()
-            ->where('proyeks.id', $laporan->proyek_id)
-            ->exists();
-
-        if (!$memilikiAkses) {
-            abort(403, 'Anda tidak memiliki akses ke laporan ini.');
-        }
-
-        /*
-    |--------------------------------------------------------------------------
-    | Load Relationship
-    |--------------------------------------------------------------------------
-    */
-
-        $laporan->load([
-            'proyek',
-            'pegawai.jabatan',
-            'absensis.pegawai.jabatan',
-        ]);
-
-        return view(
-            'Pengawas.detail-absensi',
-            compact('pegawai', 'laporan')
         );
     }
 }

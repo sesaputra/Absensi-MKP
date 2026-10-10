@@ -16,7 +16,7 @@ $isAdmin = auth()->check()
 
 <div class="space-y-6">
 
-    @include('components/alerts')
+    @include('components.alerts')
 
     {{-- VALIDATION ERROR --}}
     @if($errors->any())
