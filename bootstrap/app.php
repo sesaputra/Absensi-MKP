@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Behind Caddy (TLS) -> nginx:80 -> php-fpm. Trust proxy headers
+        // (X-Forwarded-Proto/Host/Port) so route()/asset() generate https URLs.
+        $middleware->trustProxies(at: '*');
         $middleware->alias([ 'role' => CheckRole::class, ]); 
     })
     ->withExceptions(function (Exceptions $exceptions) {
