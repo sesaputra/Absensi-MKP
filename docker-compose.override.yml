@@ -1,0 +1,20 @@
+# Local development overrides ONLY.
+# Auto-loaded by `docker compose up` when no -f flags are given (laptops).
+# NEVER loaded on VPS deploys (explicit -f flags skip the override file).
+# Excluded from the Docker image via .dockerignore.
+services:
+  app:
+    volumes:
+      # Source bind for hot-reload; image vendor/build shadowed so they stay intact.
+      - ./:/var/www
+      - /var/www/vendor
+      - /var/www/public/build
+      - /var/www/node_modules
+
+  webserver:
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./public:/var/www/public:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro

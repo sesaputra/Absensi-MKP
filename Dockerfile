@@ -28,9 +28,11 @@ FROM php:8.3.14-fpm
 WORKDIR /var/www
 
 # Install system dependencies in single layer with cleanup
+# gosu lets the root-run entrypoint fix volume ownership, then drop to www-data
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
+    gosu \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
@@ -53,6 +55,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         zip \
         intl \
         opcache \
+    && gosu nobody true \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -65,6 +68,9 @@ COPY . /var/www
 COPY --from=vendor /app/vendor /var/www/vendor
 COPY --from=frontend /app/public/build /var/www/public/build
 
+# Never ship a baked framework cache; entrypoint regenerates it every boot
+RUN rm -f /var/www/bootstrap/cache/*.php
+
 # Permissions for Laravel writable dirs - run as root before switching user
 RUN chown -R www-data:www-data /var/www \
     && chmod -R 775 /var/www/storage /var/www/bootstrap/cache \
@@ -75,7 +81,9 @@ RUN chown -R www-data:www-data /var/www \
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-USER www-data
+# NOTE: intentionally no USER directive. The entrypoint starts as root so it can
+# repair named-volume ownership, then drops privileges via gosu before exec.
+# Runtime process (php-fpm) still runs as www-data.
 
 EXPOSE 9000
 
