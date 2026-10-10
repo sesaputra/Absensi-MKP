@@ -446,7 +446,7 @@ class KeuanganProyekController extends Controller
         }
 
         return view(
-            'Admin.laporan-keuangan',
+            'admin.laporan-keuangan',
             compact(
                 'proyek',
                 'keuangans',
@@ -1173,7 +1173,7 @@ class KeuanganProyekController extends Controller
         }
 
         return view(
-            'Admin.payroll',
+            'admin.payroll',
             compact(
                 'proyek',
                 'rekapGaji',

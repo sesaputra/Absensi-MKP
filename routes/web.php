@@ -315,11 +315,6 @@ Route::middleware('auth')->group(function () {
             [PengawasController::class, 'riwayatAbsensi']
         )->name('pengawas.riwayat.absensi');
 
-        Route::get(
-            '/pengawas/riwayat-absensi/{laporan}',
-            [PengawasController::class, 'detailAbsensi']
-        )->name('pengawas.riwayat.absensi.detail');
-
 
         /*
     |--------------------------------------------------------------------------

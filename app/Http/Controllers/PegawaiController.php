@@ -50,7 +50,7 @@ class PegawaiController extends Controller
         $totalJabatan = $jabatans->count();
 
         return view(
-            'Admin.manajemen-pegawai',
+            'admin.manajemen-pegawai',
             compact(
                 'pegawais',
                 'jabatans',
