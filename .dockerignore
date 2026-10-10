@@ -24,7 +24,9 @@ bootstrap/cache/*.php
 .phpunit.result.cache
 .Homestead*
 auth.json
-docker-compose.override.yml
+Dockerfile
+.dockerignore
+docker-compose*.yml
 README.md
 tests
 phpunit.xml
