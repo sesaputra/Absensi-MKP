@@ -8,6 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Renamed from 2026_08_18_064720_create_kasbons_table (same table).
+        // Databases migrated before the rename already have this table and
+        // recorded the old filename — skip creation there so migrate keeps
+        // moving instead of failing with "table already exists".
+        if (Schema::hasTable('kasbons')) {
+            return;
+        }
+
         Schema::create('kasbons', function (Blueprint $table) {
             $table->id();
 
