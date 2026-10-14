@@ -232,6 +232,38 @@
                         d="m9 18 6-6-6-6" />
                 </svg>
             </a>
+
+            {{-- ABSENSI SORE TERTUNDA --}}
+            <a href="{{ route('pengawas.absensi-tertunda') }}"
+                class="group mb-4 flex items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-white p-4 shadow-sm transition hover:border-amber-300 hover:shadow-md sm:p-5">
+
+                <div class="flex min-w-0 items-center gap-3">
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                stroke-width="1.7"
+                                d="M12 8v4l3 2m6-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+
+                    <div class="min-w-0">
+                        <h2 class="text-sm font-bold text-slate-800 sm:text-base">
+                            Absensi Sore Tertunda
+                        </h2>
+
+                        <p class="mt-1 text-xs leading-5 text-slate-500 sm:text-sm">
+                            Lengkapi laporan dari hari sebelumnya.
+                        </p>
+                    </div>
+                </div>
+
+                <svg class="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-1"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        stroke-width="1.8" d="m9 18 6-6-6-6" />
+                </svg>
+            </a>
             {{-- SECTION TITLE --}}
             <div class="mb-5 flex items-center gap-3">
 

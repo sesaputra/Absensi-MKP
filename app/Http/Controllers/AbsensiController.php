@@ -526,48 +526,91 @@ class AbsensiController extends Controller
     /**
      * Simpan laporan sore + progres + absensi final.
      */
+
     public function storeSore(
         Request $request,
-        Proyek $proyek
+        Proyek $proyek,
+        ?LaporanHarian $laporan = null
     ) {
         $this->authorizePengawas();
 
-        $this->ensureProyekAktif($proyek);
-        $this->ensureTanggalProyekAktif($proyek);
-        $this->ensurePengawasDalamProyek($proyek);
-
-        $tanggalHariIni = Carbon::today()->format('Y-m-d');
+        $isSusulan = $laporan !== null;
 
         /*
-         * Ambil laporan hari ini.
-         */
-        $laporan = LaporanHarian::with('absensis')
-            ->where('proyek_id', $proyek->id)
-            ->where('tanggal', $tanggalHariIni)
-            ->first();
+    |--------------------------------------------------------------------------
+    | 1. VALIDASI AKSES DAN LAPORAN
+    |--------------------------------------------------------------------------
+    */
 
-        abort_if(
-            !$laporan,
-            404,
-            'Laporan absensi pagi hari ini belum dibuat.'
-        );
+        if ($isSusulan) {
+            $pegawai = $this->getPegawaiPengawas();
+
+            // Pastikan laporan milik proyek dan Pengawas yang berwenang.
+            abort_unless(
+                (int) $laporan->proyek_id === (int) $proyek->id
+                    && (int) $laporan->pegawai_id === (int) $pegawai->id
+                    && $proyek->pegawais()
+                    ->where('pegawais.id', $pegawai->id)
+                    ->exists(),
+                403,
+                'Anda tidak memiliki akses ke laporan ini.'
+            );
+
+            // Laporan susulan hanya berlaku untuk tanggal sebelumnya.
+            abort_unless(
+                Carbon::parse($laporan->tanggal)->lt(Carbon::today()),
+                422,
+                'Laporan ini bukan laporan susulan.'
+            );
+
+            $laporan->load('absensis');
+
+            // Hanya laporan pagi yang belum selesai atau ditolak yang dapat diubah.
+            abort_unless(
+                in_array(
+                    $laporan->status_validasi,
+                    ['Draft Pagi', 'Ditolak'],
+                    true
+                ),
+                422,
+                'Laporan ini sudah dikirim atau tidak dapat diubah.'
+            );
+        } else {
+            // Pertahankan validasi untuk absensi sore biasa.
+            $this->ensureProyekAktif($proyek);
+            $this->ensureTanggalProyekAktif($proyek);
+            $this->ensurePengawasDalamProyek($proyek);
+
+            $tanggalHariIni = Carbon::today()->format('Y-m-d');
+
+            $laporan = LaporanHarian::with('absensis')
+                ->where('proyek_id', $proyek->id)
+                ->whereDate('tanggal', $tanggalHariIni)
+                ->first();
+
+            abort_if(
+                !$laporan,
+                404,
+                'Laporan absensi pagi hari ini belum dibuat.'
+            );
+
+            // Jangan memproses laporan hari ini yang sudah dikirim.
+            abort_unless(
+                in_array(
+                    $laporan->status_validasi,
+                    ['Draft Pagi', 'Ditolak'],
+                    true
+                ),
+                422,
+                'Laporan sore sudah dikirim atau tidak dapat diubah.'
+            );
+        }
 
         /*
-         * Sore hanya boleh dilakukan pada:
-         *
-         * Draft Pagi
-         * atau
-         * Ditolak
-         */
-        abort_unless(
-            in_array(
-                $laporan->status_validasi,
-                ['Draft Pagi', 'Ditolak'],
-                true
-            ),
-            422,
-            'Laporan ini tidak dapat diubah karena sudah dikirim atau disetujui.'
-        );
+    |--------------------------------------------------------------------------
+    | 2. VALIDASI INPUT
+    |--------------------------------------------------------------------------
+    */
 
         $validated = $request->validate([
             'foto_sore' => [
@@ -616,26 +659,29 @@ class AbsensiController extends Controller
         ]);
 
         /*
-         * Pastikan pegawai yang dikirim masih valid
-         * untuk proyek tersebut.
-         */
-        $this->validatePegawaiAbsensi(
-            $proyek,
-            $validated['absensi']
-        );
+    |--------------------------------------------------------------------------
+    | 3. VALIDASI KESESUAIAN PEGAWAI
+    |--------------------------------------------------------------------------
+    */
 
-        /*
-         * Pastikan pegawai yang dikirim sore
-         * memang sudah mempunyai absensi pagi.
-         */
+        if (!$isSusulan) {
+            $this->validatePegawaiAbsensi(
+                $proyek,
+                $validated['absensi']
+            );
+        }
+
         $this->ensureAbsensiSesuaiLaporan(
             $laporan,
             $validated['absensi']
         );
 
         /*
-         * Validasi item pekerjaan.
-         */
+    |--------------------------------------------------------------------------
+    | 4. VALIDASI ITEM PEKERJAAN
+    |--------------------------------------------------------------------------
+    */
+
         $semuaItemPekerjaan = ItemPekerjaan::where(
             'proyek_id',
             $proyek->id
@@ -662,105 +708,125 @@ class AbsensiController extends Controller
             'Terdapat item pekerjaan yang tidak terdaftar pada proyek ini.'
         );
 
+        /*
+    |--------------------------------------------------------------------------
+    | 5. SIMPAN FOTO SORE
+    |--------------------------------------------------------------------------
+    */
+
         $pathFotoSore = null;
 
         try {
             $pathFotoSore = $request
                 ->file('foto_sore')
-                ->store(
-                    'bukti_lapangan',
-                    'public'
+                ->store('bukti_lapangan', 'public');
+
+            if (!$pathFotoSore) {
+                throw new \RuntimeException(
+                    'Foto sore gagal disimpan.'
                 );
+            }
+
+            /*
+        |--------------------------------------------------------------------------
+        | 6. SIMPAN LAPORAN DALAM TRANSAKSI
+        |--------------------------------------------------------------------------
+        */
 
             DB::transaction(function () use (
                 $validated,
                 $proyek,
                 $laporan,
                 $pathFotoSore,
-                $semuaItemPekerjaan
+                $semuaItemPekerjaan,
+                $isSusulan
             ) {
-                $catatanProgres = '';
-                $snapshotRiwayat = [];
-
-                /*
-                 * Update progress proyek.
-                 */
-                foreach ($semuaItemPekerjaan as $item) {
-                    $nilaiProgresBaru =
-                        $validated['progres'][$item->id]
-                        ?? $item->progres_sekarang;
-
-                    /*
-                     * Simpan riwayat perubahan progress.
-                     */
-                    if (
-                        (float) $item->progres_sekarang
-                        !== (float) $nilaiProgresBaru
-                    ) {
-                        $catatanProgres .=
-                            "\n- "
-                            . $item->nama_pekerjaan
-                            . ' : '
-                            . $item->progres_sekarang
-                            . '% -> '
-                            . $nilaiProgresBaru
-                            . '%';
-
-                        $item->update([
-                            'progres_sekarang' => $nilaiProgresBaru,
-                        ]);
-                    }
-
-                    $snapshotRiwayat[] = [
-                        'item_pekerjaan_id' => $item->id,
-                        'nama_pekerjaan' => $item->nama_pekerjaan,
-                        'progres' => (float) $nilaiProgresBaru,
-                    ];
-                }
-
-                /*
-                 * Bersihkan bagian progress lama dari kegiatan.
-                 */
                 $kegiatanFinal = $validated['kegiatan'];
 
-                $bagianAtas = explode(
-                    'PENCAPAIAN PROGRES HARIAN:',
-                    $kegiatanFinal
-                )[0];
+                /*
+             * ABSENSI SORE BIASA
+             *
+             * Progres proyek diperbarui hanya untuk laporan hari ini.
+             */
+                if (!$isSusulan) {
+                    $catatanProgres = '';
+                    $snapshotRiwayat = [];
 
-                if ($catatanProgres !== '') {
-                    $kegiatanFinal =
-                        trim($bagianAtas)
-                        . "\n\nPENCAPAIAN PROGRES HARIAN:"
-                        . $catatanProgres;
+                    foreach ($semuaItemPekerjaan as $item) {
+                        $nilaiProgresBaru =
+                            $validated['progres'][$item->id]
+                            ?? $item->progres_sekarang;
+
+                        if (
+                            (float) $item->progres_sekarang
+                            !== (float) $nilaiProgresBaru
+                        ) {
+                            $catatanProgres .=
+                                "\n- "
+                                . $item->nama_pekerjaan
+                                . ' : '
+                                . $item->progres_sekarang
+                                . '% -> '
+                                . $nilaiProgresBaru
+                                . '%';
+
+                            $item->update([
+                                'progres_sekarang' => $nilaiProgresBaru,
+                            ]);
+                        }
+
+                        $snapshotRiwayat[] = [
+                            'item_pekerjaan_id' => $item->id,
+                            'nama_pekerjaan' => $item->nama_pekerjaan,
+                            'progres' => (float) $nilaiProgresBaru,
+                        ];
+                    }
+
+                    // Hindari menumpuk catatan progres lama.
+                    $bagianAtas = explode(
+                        'PENCAPAIAN PROGRES HARIAN:',
+                        $kegiatanFinal
+                    )[0];
+
+                    if ($catatanProgres !== '') {
+                        $kegiatanFinal =
+                            trim($bagianAtas)
+                            . "\n\nPENCAPAIAN PROGRES HARIAN:"
+                            . $catatanProgres;
+                    }
+
+                    $laporan->update([
+                        'foto_sore' => $pathFotoSore,
+                        'kegiatan' => $kegiatanFinal,
+                        'progres_snapshot' => $snapshotRiwayat,
+                        'status_validasi' => 'Menunggu Persetujuan',
+                    ]);
+                } else {
+                    /*
+                 * ABSENSI SORE SUSULAN
+                 *
+                 * Jangan memperbarui progres proyek terkini.
+                 * Jangan menimpa progres_snapshot historis.
+                 */
+                    $laporan->update([
+                        'foto_sore' => $pathFotoSore,
+                        'kegiatan' => $kegiatanFinal,
+                        'status_validasi' => 'Menunggu Persetujuan',
+                    ]);
                 }
 
                 /*
-                 * Update laporan.
-                 *
-                 * Karena model LaporanHarian memiliki cast:
-                 *
-                 * 'progres_snapshot' => 'array'
-                 *
-                 * maka tidak perlu json_encode().
-                 */
-                $laporan->update([
-                    'foto_sore' => $pathFotoSore,
-                    'kegiatan' => $kegiatanFinal,
-                    'progres_snapshot' => $snapshotRiwayat,
-                    'status_validasi' => 'Menunggu Persetujuan',
-                ]);
+            |--------------------------------------------------------------------------
+            | 7. PERBARUI ABSENSI PEGAWAI
+            |--------------------------------------------------------------------------
+            */
 
-                /*
-                 * Update absensi final.
-                 */
                 foreach ($validated['absensi'] as $pegawaiId => $data) {
-                    $durasiFinal =
-                        $data['status'] === 'Hadir'
+                    $durasiFinal = $data['status'] === 'Hadir'
                         ? ($data['durasi'] ?? 'Full')
                         : null;
 
-                    $laporan->absensis()
+                    $jumlahDiubah = $laporan->absensis()
                         ->where('pegawai_id', (int) $pegawaiId)
                         ->update([
                             'status' => $data['status'],
@@ -768,6 +834,13 @@ class AbsensiController extends Controller
                             'keterangan' => $data['keterangan'] ?? null,
                             'status_validasi' => 'Menunggu Persetujuan',
                         ]);
+
+                    // Mencegah data pegawai di luar laporan ikut diproses.
+                    if ($jumlahDiubah === 0) {
+                        throw new \RuntimeException(
+                            'Data absensi pegawai tidak ditemukan dalam laporan.'
+                        );
+                    }
                 }
             });
         } catch (Throwable $e) {
@@ -775,21 +848,36 @@ class AbsensiController extends Controller
                 Storage::disk('public')->delete($pathFotoSore);
             }
 
+            report($e);
+
             return back()
                 ->withInput()
                 ->with(
                     'error',
-                    'Terjadi kesalahan saat menyimpan laporan sore.'
+                    'Terjadi kesalahan saat menyimpan laporan sore. Silakan periksa kembali data Anda.'
                 );
         }
 
+        /*
+    |--------------------------------------------------------------------------
+    | 8. REDIRECT SETELAH BERHASIL
+    |--------------------------------------------------------------------------
+    */
+
         return redirect()
-            ->route('pengawas.dashboard')
+            ->route(
+                $isSusulan
+                    ? 'pengawas.absensi-tertunda'
+                    : 'pengawas.dashboard'
+            )
             ->with(
                 'success',
-                'Laporan Final, Foto Sore & Absensi berhasil dikirim ke Admin!'
+                $isSusulan
+                    ? 'Absensi sore susulan berhasil dikirim ke Admin.'
+                    : 'Laporan final, foto sore, dan absensi berhasil dikirim ke Admin.'
             );
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -982,6 +1070,99 @@ class AbsensiController extends Controller
                 'proyek',
                 'riwayatLaporan',
                 'bulanFilter'
+            )
+        );
+    }
+
+    /**
+     * Daftar absensi sore yang belum diselesaikan.
+     */
+    public function indexAbsensiTertunda()
+    {
+        $this->authorizePengawas();
+
+        $pegawai = $this->getPegawaiPengawas();
+
+        $proyekIds = $pegawai->proyeks()
+            ->pluck('proyeks.id');
+
+        $laporanTertunda = LaporanHarian::with([
+            'proyek',
+            'absensis.pegawai',
+        ])
+            ->whereIn('proyek_id', $proyekIds)
+            ->where('pegawai_id', $pegawai->id)
+            ->whereDate('tanggal', '<', Carbon::today())
+            ->whereIn('status_validasi', [
+                'Draft Pagi',
+                'Ditolak',
+            ])
+            ->orderBy('tanggal')
+            ->get();
+
+        return view(
+            'pengawas.absensi-tertunda',
+            compact('laporanTertunda')
+        );
+    }
+
+    /**
+     * Membuka form absensi sore susulan.
+     */
+    public function editSoreSusulan(
+        Proyek $proyek,
+        LaporanHarian $laporan
+    ) {
+        $this->authorizePengawas();
+
+        $pegawai = $this->getPegawaiPengawas();
+
+        abort_unless(
+            $laporan->proyek_id === $proyek->id
+                && $laporan->pegawai_id === $pegawai->id
+                && $proyek->pegawais()
+                ->where('pegawais.id', $pegawai->id)
+                ->exists(),
+            403,
+            'Anda tidak memiliki akses ke laporan ini.'
+        );
+
+        abort_unless(
+            Carbon::parse($laporan->tanggal)->lt(Carbon::today()),
+            422,
+            'Laporan ini bukan laporan dari hari sebelumnya.'
+        );
+
+        abort_unless(
+            in_array(
+                $laporan->status_validasi,
+                ['Draft Pagi', 'Ditolak'],
+                true
+            ),
+            422,
+            'Laporan ini tidak dapat dilengkapi.'
+        );
+
+        $laporan->load([
+            'absensis.pegawai.jabatan',
+        ]);
+
+        $dataAbsen = $laporan->absensis
+            ->keyBy('pegawai_id');
+
+        $laporanHariIni = $laporan;
+
+        $proyek->load('itemPekerjaans');
+
+        $isSusulan = true;
+
+        return view(
+            'pengawas.absensi-sore',
+            compact(
+                'proyek',
+                'laporanHariIni',
+                'dataAbsen',
+                'isSusulan'
             )
         );
     }

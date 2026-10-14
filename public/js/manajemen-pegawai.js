@@ -451,3 +451,20 @@ function confirmDelete(formId, itemLabel) {
         }
     });
 }
+
+
+function togglePasswordVisibility(inputId, button) {
+    const input = document.getElementById(inputId);
+
+    if (!input) return;
+
+    const isHidden = input.type === 'password';
+
+    input.type = isHidden ? 'text' : 'password';
+    button.textContent = isHidden ? 'Sembunyikan' : 'Lihat';
+    button.setAttribute('aria-pressed', String(isHidden));
+    button.setAttribute(
+        'aria-label',
+        isHidden ? 'Sembunyikan password' : 'Lihat password'
+    );
+}

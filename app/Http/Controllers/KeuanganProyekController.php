@@ -511,32 +511,55 @@ class KeuanganProyekController extends Controller
         ]);
 
         /*
-        |--------------------------------------------------------------------------
-        | Transaksi tidak boleh sebelum proyek dimulai
-        |--------------------------------------------------------------------------
-        */
+    |--------------------------------------------------------------------------
+    | Validasi tanggal transaksi
+    |--------------------------------------------------------------------------
+    |
+    | Pemasukan termin boleh dicatat sebelum proyek dimulai.
+    | Pengeluaran tidak boleh dicatat sebelum tanggal mulai proyek.
+    | Semua transaksi dilarang menggunakan tanggal masa depan.
+    |
+    */
 
-        if (
-            $proyek->tanggal_mulai &&
-            $data['tanggal'] < $proyek->tanggal_mulai->format('Y-m-d')
-        ) {
-            return back()->with(
-                'error',
-                'Tanggal transaksi tidak boleh sebelum tanggal mulai proyek.'
-            );
+        $tanggalTransaksi = \Carbon\Carbon::parse(
+            $data['tanggal']
+        )->format('Y-m-d');
+
+        $tanggalHariIni = now()->format('Y-m-d');
+
+        $tanggalMulaiProyek = $proyek->tanggal_mulai
+            ? \Carbon\Carbon::parse(
+                $proyek->tanggal_mulai
+            )->format('Y-m-d')
+            : null;
+
+        // Semua transaksi tidak boleh menggunakan tanggal masa depan.
+        if ($tanggalTransaksi > $tanggalHariIni) {
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Tanggal transaksi tidak boleh menggunakan tanggal yang akan datang.'
+                );
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Transaksi tidak boleh di masa depan
-        |--------------------------------------------------------------------------
-        */
+        // Pengeluaran tidak boleh mendahului tanggal mulai proyek.
+        if (
+            $data['tipe'] === 'Pengeluaran' &&
+            $tanggalMulaiProyek &&
+            $tanggalTransaksi < $tanggalMulaiProyek
+        ) {
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Tanggal pengeluaran tidak boleh sebelum tanggal mulai proyek.'
+                );
+        }
 
-        if ($data['tanggal'] > now()->format('Y-m-d')) {
-            return back()->with(
-                'error',
-                'Tanggal transaksi tidak boleh menggunakan tanggal yang akan datang.'
-            );
+        // Pemasukan selalu menggunakan kategori Termin Klien.
+        if ($data['tipe'] === 'Pemasukan') {
+            $data['kategori'] = 'Termin Klien';
         }
 
         $buktiPath = null;
@@ -548,12 +571,7 @@ class KeuanganProyekController extends Controller
                 $proyek,
                 &$buktiPath
             ) {
-                /*
-                |--------------------------------------------------------------------------
-                | Upload bukti
-                |--------------------------------------------------------------------------
-                */
-
+                // Upload bukti transaksi jika tersedia.
                 if ($request->hasFile('bukti_file')) {
                     $buktiPath = $request
                         ->file('bukti_file')
@@ -561,48 +579,46 @@ class KeuanganProyekController extends Controller
                             'bukti-keuangan',
                             'public'
                         );
+
+                    if ($buktiPath === false) {
+                        throw new \RuntimeException(
+                            'Bukti transaksi gagal diunggah.'
+                        );
+                    }
                 }
 
-                /*
-                |--------------------------------------------------------------------------
-                | Simpan transaksi
-                |--------------------------------------------------------------------------
-                */
-
+                // Simpan transaksi keuangan.
                 KeuanganProyek::create([
                     'proyek_id' => $proyek->id,
-
                     'kasbon_id' => null,
-
                     'tipe' => $data['tipe'],
-
                     'kategori' => $data['kategori'],
-
                     'nominal' => $data['nominal'],
-
                     'tanggal' => $data['tanggal'],
-
                     'keterangan' => $data['keterangan'],
-
                     'bukti_file' => $buktiPath,
                 ]);
             });
 
-            return back()->with(
-                'success',
-                'Transaksi keuangan berhasil dicatat.'
-            );
+            return redirect()
+                ->route('proyek.keuangan', $proyek->id)
+                ->with(
+                    'success',
+                    'Transaksi keuangan berhasil dicatat.'
+                );
         } catch (\Throwable $e) {
-            if ($buktiPath) {
+            if ($buktiPath !== null) {
                 Storage::disk('public')->delete($buktiPath);
             }
 
             report($e);
 
-            return back()->with(
-                'error',
-                'Transaksi gagal disimpan.'
-            );
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Transaksi gagal disimpan. Silakan coba kembali.'
+                );
         }
     }
 
@@ -1625,5 +1641,143 @@ class KeuanganProyekController extends Controller
                 \Illuminate\Support\Str::slug($proyek->nama_proyek) .
                 '.pdf'
         );
+    }
+
+
+    /**
+     * Memperbarui transaksi pemasukan atau pengeluaran biasa.
+     *
+     * Pembayaran upah dan transaksi kasbon tidak dapat diedit
+     * melalui method ini karena memiliki dampak pada proses lain.
+     */
+
+    public function update(
+        Request $request,
+        Proyek $proyek,
+        int $transaksi
+    ) {
+        $this->authorizeAdmin();
+
+        $this->ensureProyekAktif($proyek);
+
+        // Pastikan transaksi milik proyek ini dan bukan transaksi sistem.
+        $keuangan = $proyek->keuangans()
+            ->whereNull('kasbon_id')
+            ->whereNotIn('kategori', [
+                'Upah Tukang',
+                'Kasbon Tukang',
+            ])
+            ->whereKey($transaksi)
+            ->firstOrFail();
+
+        // Normalisasi nominal jika dikirim sebagai string angka.
+        // Jangan menggunakan format seperti "Rp 1.500.000" pada input.
+        $request->merge([
+            'nominal' => $request->input('nominal') === ''
+                ? null
+                : $request->input('nominal'),
+        ]);
+
+        $validated = $request->validate([
+            'kategori' => [
+                \Illuminate\Validation\Rule::requiredIf(
+                    $keuangan->tipe === 'Pengeluaran'
+                ),
+                'nullable',
+                'string',
+                'max:100',
+                \Illuminate\Validation\Rule::notIn([
+                    'Upah Tukang',
+                    'Kasbon Tukang',
+                ]),
+            ],
+
+            'nominal' => [
+                'required',
+                'integer',
+                'min:1',
+            ],
+
+            'tanggal' => [
+                'required',
+                'date',
+                'after_or_equal:' . \Carbon\Carbon::parse(
+                    $proyek->tanggal_mulai
+                )->format('Y-m-d'),
+                'before_or_equal:' . now()->toDateString(),
+            ],
+
+            'keterangan' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+
+            'bukti_file' => [
+                'nullable',
+                'file',
+                'mimes:jpg,jpeg,png,pdf',
+                'max:5120',
+            ],
+        ]);
+
+        $fileLama = $keuangan->bukti_file;
+        $fileBaru = null;
+
+        try {
+            // Simpan bukti baru jika pengguna memilih file pengganti.
+            if ($request->hasFile('bukti_file')) {
+                $fileBaru = $request->file('bukti_file')
+                    ->store('bukti-keuangan', 'public');
+
+                if ($fileBaru === false) {
+                    throw new \RuntimeException(
+                        'Bukti transaksi gagal diunggah.'
+                    );
+                }
+            }
+
+            // Pemasukan selalu menggunakan kategori Termin Klien.
+            if ($keuangan->tipe === 'Pemasukan') {
+                $keuangan->kategori = 'Termin Klien';
+            } else {
+                $keuangan->kategori = $validated['kategori'];
+            }
+
+            // Perbarui informasi transaksi.
+            $keuangan->nominal = $validated['nominal'];
+            $keuangan->tanggal = $validated['tanggal'];
+            $keuangan->keterangan = $validated['keterangan'] ?? null;
+
+            // Bukti lama tetap digunakan jika tidak ada file pengganti.
+            if ($fileBaru !== null) {
+                $keuangan->bukti_file = $fileBaru;
+            }
+
+            $keuangan->save();
+        } catch (\Throwable $e) {
+            // Hapus file baru jika penyimpanan transaksi gagal.
+            if ($fileBaru !== null) {
+                Storage::disk('public')->delete($fileBaru);
+            }
+
+            report($e);
+
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Transaksi gagal diperbarui. Silakan coba kembali.'
+                );
+        }
+
+        // Hapus bukti lama hanya setelah transaksi berhasil disimpan.
+        if ($fileBaru !== null && $fileLama) {
+            Storage::disk('public')->delete($fileLama);
+        }
+
+        return redirect()
+            ->route('proyek.keuangan', $proyek->id)
+            ->with('success', 'Transaksi berhasil diperbarui.');
     }
 }

@@ -164,13 +164,34 @@ class DashboardController extends Controller
         }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | Proyek yang Ditampilkan di Dashboard
-        |--------------------------------------------------------------------------
-        */
 
-        $proyekKesehatan = $proyekAktif->take(3);
+        /*
+|--------------------------------------------------------------------------
+| Proyek yang Ditampilkan di Dashboard
+|--------------------------------------------------------------------------
+|
+| Prioritas:
+| 1. danger  : Krisis / tidak aman
+| 2. warning : Dana menipis / perlu perhatian
+| 3. safe    : Kondisi aman
+| 4. neutral : Status netral
+|
+*/
+
+        $urutanKesehatan = [
+            'danger' => 1,
+            'warning' => 2,
+            'safe' => 3,
+            'neutral' => 4,
+        ];
+
+        $proyekAktif = $proyekAktif
+            ->sortBy(function ($proyek) use ($urutanKesehatan) {
+                return $urutanKesehatan[$proyek->health_level] ?? 5;
+            })
+            ->values();
+
+        $proyekKesehatan = $proyekAktif->take(6);
 
 
         /*

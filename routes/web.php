@@ -280,11 +280,17 @@ Route::middleware('auth')->group(function () {
             '/proyek/{proyek}/keuangan/pdf',
             [KeuanganProyekController::class, 'unduhPdf']
         )->name('keuangan.pdf');
+
+
+        Route::put(
+            '/admin/proyek/{proyek}/keuangan/{transaksi}',
+            [KeuanganProyekController::class, 'update']
+        )->name('proyek.keuangan.update');
     });
 
 
 
-/*
+    /*
 |--------------------------------------------------------------------------
 | Pengawas
 |--------------------------------------------------------------------------
@@ -343,5 +349,25 @@ Route::middleware('auth')->group(function () {
             '/absensi/{proyek}/sore',
             [AbsensiController::class, 'storeSore']
         )->name('absensi.storeSore');
+
+        /*
+    |--------------------------------------------------------------------------
+    | Absensi Tertunda
+    |--------------------------------------------------------------------------
+    */
+        Route::get('/pengawas/absensi-tertunda', [
+            AbsensiController::class,
+            'indexAbsensiTertunda',
+        ])->name('pengawas.absensi-tertunda');
+
+        Route::get('/pengawas/absensi/{proyek}/sore-susulan/{laporan}', [
+            AbsensiController::class,
+            'editSoreSusulan',
+        ])->name('pengawas.absensi.sore-susulan.edit');
+
+        Route::post('/pengawas/absensi/{proyek}/sore-susulan/{laporan}', [
+            AbsensiController::class,
+            'storeSore',
+        ])->name('pengawas.absensi.sore-susulan.store');
     });
 });

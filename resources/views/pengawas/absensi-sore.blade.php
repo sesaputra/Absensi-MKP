@@ -184,7 +184,12 @@ $itemProgress['item_pekerjaan_id']
 ====================================================== -->
     <form
         id="formAbsenSore"
-        action="{{ route('absensi.storeSore', $proyek->id) }}"
+        action="{{ ($isSusulan ?? false)
+        ? route('pengawas.absensi.sore-susulan.store', [
+            'proyek' => $proyek->id,
+            'laporan' => $laporanHariIni->id,
+        ])
+        : route('absensi.storeSore', $proyek->id) }}"
         method="POST"
         enctype="multipart/form-data"
         class="p-4 mt-2">
@@ -937,16 +942,13 @@ $itemProgress['item_pekerjaan_id']
                 Swal.fire({
 
                     title: isDitolak ?
-                        'Kirim Ulang Laporan?' :
-                        'Kirim Laporan Final?',
+                        'Kirim Ulang Laporan?' : 'Kirim Laporan Final?',
 
                     text: isDitolak ?
-                        'Laporan akan dikirim ulang kepada Admin untuk diperiksa.' :
-                        'Data progres dan absensi akan dikunci untuk hari ini.',
+                        'Laporan akan dikirim ulang kepada Admin untuk diperiksa.' : 'Data progres dan absensi akan dikunci untuk hari ini.',
 
                     icon: isDitolak ?
-                        'warning' :
-                        'question',
+                        'warning' : 'question',
 
                     showCancelButton: true,
 
@@ -955,8 +957,7 @@ $itemProgress['item_pekerjaan_id']
                     cancelButtonColor: '#64748b',
 
                     confirmButtonText: isDitolak ?
-                        'Ya, Kirim Ulang' :
-                        'Ya, Kirim Sekarang!',
+                        'Ya, Kirim Ulang' : 'Ya, Kirim Sekarang!',
 
                     cancelButtonText: 'Batal'
 

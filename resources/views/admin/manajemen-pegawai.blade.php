@@ -1111,19 +1111,37 @@ $isAdmin = auth()->check()
                             class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100">
                     </div>
 
+
                     <div>
-                        <label for="pegawai_password" class="mb-2 block text-sm font-semibold text-slate-700">
+                        <label for="pegawai_password"
+                            class="mb-2 block text-sm font-semibold text-slate-700">
                             Password
                         </label>
 
-                        <input
-                            type="password"
-                            id="pegawai_password"
-                            name="password"
-                            autocomplete="new-password"
-                            placeholder="Minimal 8 karakter"
-                            class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100">
+                        <div class="relative">
+                            <input
+                                type="password"
+                                id="pegawai_password"
+                                name="password"
+                                autocomplete="new-password"
+                                placeholder="Minimal 8 karakter"
+                                class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-20 text-sm text-slate-800 outline-none transition focus:border-amber-400 focus:ring-4 focus:ring-amber-100">
+
+                            <button
+                                type="button"
+                                onclick="togglePasswordVisibility('pegawai_password', this)"
+                                class="absolute inset-y-0 right-3 my-auto h-fit rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                                aria-label="Lihat password"
+                                aria-pressed="false">
+                                Lihat
+                            </button>
+                        </div>
+
+                        <p class="mt-2 text-xs text-slate-500">
+                            Minimal 8 karakter. Gunakan tombol Lihat untuk memeriksa password.
+                        </p>
                     </div>
+
                 </div>
             </div>
 
@@ -1367,7 +1385,7 @@ $isAdmin = auth()->check()
 ============================================================= --}}
 <script>
     const jabatanCanLogin = @json(
-        $jabatans->mapWithKeys(fn ($j) => [(string) $j->id => $j->allowsLogin()])->all(),
+        $jabatans -> mapWithKeys(fn($j) => [(string) $j -> id => $j -> allowsLogin()]) -> all(),
         JSON_FORCE_OBJECT
     );
 </script>
